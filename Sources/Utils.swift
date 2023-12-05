@@ -45,7 +45,7 @@ extension StringProtocol {
 	public func splitAndTrim(
 		separator: Self.Element, maxSplits: Int = Int.max, omittingEmptySubsequences: Bool = true
 	) -> [String] {
-		let partialResult = split(separator: separator).map({ $0.trimmingCharacters(in: .whitespaces) })
+		let partialResult = split(separator: separator, maxSplits: maxSplits).map({ $0.trimmingCharacters(in: .whitespaces) })
 		if omittingEmptySubsequences {
 			return partialResult.filter({ !$0.isEmpty })
 		}
@@ -54,7 +54,7 @@ extension StringProtocol {
 	public func splitAndTrim(separator: String, maxSplits: Int = Int.max, omittingEmptySubsequences: Bool = true)
 		-> [String]
 	{
-		let partialResult = split(separator: separator).map({ $0.trimmingCharacters(in: .whitespaces) })
+		let partialResult = split(separator: separator, maxSplits: maxSplits).map({ $0.trimmingCharacters(in: .whitespaces) })
 		if omittingEmptySubsequences {
 			return partialResult.filter({ !$0.isEmpty })
 		}
