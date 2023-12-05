@@ -182,7 +182,7 @@ struct Day04Part2: AdventDayPart {
 		// Cards the player acquired themselves
 		let initialCards: [ScratchCard]
 
-		private(set) var score: Int
+		let score: Int
 		/// Indexed by CardID, this is the value of this Card including the points from descendents
 		private(set) var scoreTable: [Int: Int]
 
@@ -197,7 +197,6 @@ struct Day04Part2: AdventDayPart {
 					cards 11, 12, 13, 14, and 15.
 			 This process repeats until none of the copies cause you to win any more cards. (Cards will never make you copy a card past the end of the table.)
 			 */
-			score = 0
 			scoreTable = [:]
 			// Naive approach, doesn't work with production data because too much memory/repeated computations
 			//	var pile = initialCards
@@ -239,8 +238,8 @@ struct Day04Part2: AdventDayPart {
 					scoreTable[card.id] =
 						(scoreTable[card.id] ?? 0) + (scoreTable[targetCard.id] ?? 0)
 				}
-				score = scoreTable.values.reduce(0, +)
 			}
+			score = scoreTable.values.reduce(0, +)
 		}
 		var debugDescription: String {
 			let countString =
