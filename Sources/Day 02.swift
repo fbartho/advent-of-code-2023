@@ -33,17 +33,13 @@ struct Day02Part1: AdventDayPart {
 	static var part: Int = 1
 
 	func run() async throws {
-		let lines = Array(
-			data.split(separator: "\n").map({ $0.trimmingCharacters(in: .whitespaces) })
-				.filter({ !$0.isEmpty }))
+		let lines = data.splitAndTrim(separator: "\n")
 		guard lines.count >= 2 else {
 			fatalError("No GameBag description + Games \(lines)")
 		}
 		let initialStateString = lines[0]
 
-		let gameBagBits = Array(
-			initialStateString.split(separator: ":")
-				.map({ $0.trimmingCharacters(in: .whitespaces) }))
+		let gameBagBits = initialStateString.splitAndTrim(separator: ":")
 		guard gameBagBits.count >= 2 else {
 			fatalError("Initial state string broken - \(gameBagBits)")
 		}
@@ -93,9 +89,7 @@ struct Day02Part1: AdventDayPart {
 				)
 			}
 			moves = moveChunks.map { move in
-				let pluckingChunks = Array(
-					move.split(separator: ",")
-						.map({ $0.trimmingCharacters(in: .whitespaces) }))
+				let pluckingChunks = move.splitAndTrim(separator: ",")
 				guard pluckingChunks.count > 0 else {
 					fatalError(
 						"Expected at least one visible cube in a plucking for '\(move)' from '\(result)'"
@@ -137,9 +131,7 @@ struct Day02Part1: AdventDayPart {
 			_ str: some StringProtocol, move: some StringProtocol,
 			origin: some StringProtocol
 		) -> SingleColorPlucking {
-			let moveColorDescription = Array(
-				str.split(separator: " ")
-					.map({ $0.trimmingCharacters(in: .whitespaces) }))
+			let moveColorDescription = str.splitAndTrim(separator: " ")
 			guard moveColorDescription.count == 2 else {
 				fatalError(
 					"Invalid count/color description '\(str) from '\(move)' from '\(origin)' - wrong number of bits."
@@ -155,9 +147,8 @@ struct Day02Part1: AdventDayPart {
 		}
 		static func parseGameBoard(state: some StringProtocol) -> GameBag {
 			var bag: GameBag = [:]
-			let cubeStrs = Array(
-				state.split(separator: ",")
-					.map({ $0.trimmingCharacters(in: .whitespaces) }))
+			let cubeStrs =
+				state.splitAndTrim(separator: ",")
 			for cubeStr in cubeStrs {
 				let parsed = Self.parseCubeCount(
 					cubeStr, move: state, origin: "GameBag")
@@ -197,9 +188,8 @@ struct Day02Part2: AdventDayPart {
 	static var part: Int = 2
 
 	func run() async throws {
-		let lines = Array(
-			data.split(separator: "\n").map({ $0.trimmingCharacters(in: .whitespaces) })
-				.filter({ !$0.isEmpty }))
+		let lines =
+			data.splitAndTrim(separator: "\n")
 		guard lines.count >= 1 else {
 			fatalError("Not enough Games \(lines)")
 		}
@@ -248,9 +238,8 @@ struct Day02Part2: AdventDayPart {
 				)
 			}
 			moves = moveChunks.map { move in
-				let pluckingChunks = Array(
-					move.split(separator: ",")
-						.map({ $0.trimmingCharacters(in: .whitespaces) }))
+				let pluckingChunks =
+					move.splitAndTrim(separator: ",")
 				guard pluckingChunks.count > 0 else {
 					fatalError(
 						"Expected at least one visible cube in a plucking for '\(move)' from '\(result)'"
@@ -277,9 +266,7 @@ struct Day02Part2: AdventDayPart {
 			_ str: some StringProtocol, move: some StringProtocol,
 			origin: some StringProtocol
 		) -> SingleColorPlucking {
-			let moveColorDescription = Array(
-				str.split(separator: " ")
-					.map({ $0.trimmingCharacters(in: .whitespaces) }))
+			let moveColorDescription = str.splitAndTrim(separator: " ")
 			guard moveColorDescription.count == 2 else {
 				fatalError(
 					"Invalid count/color description '\(str) from '\(move)' from '\(origin)' - wrong number of bits."
@@ -295,9 +282,7 @@ struct Day02Part2: AdventDayPart {
 		}
 		static func parseGameBoard(state: some StringProtocol) -> GameBag {
 			var bag: GameBag = [:]
-			let cubeStrs = Array(
-				state.split(separator: ",")
-					.map({ $0.trimmingCharacters(in: .whitespaces) }))
+			let cubeStrs = state.splitAndTrim(separator: ",")
 			for cubeStr in cubeStrs {
 				let parsed = Self.parseCubeCount(
 					cubeStr, move: state, origin: "GameBag")

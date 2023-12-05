@@ -10,9 +10,10 @@ struct DayTemplate00Part1: AdventDayPart, TestData {
 	static var part: Int = 1
 
 	func run() async throws {
-		let lines = Array(
-			data.split(separator: "\n").map({ $0.trimmingCharacters(in: .whitespaces) })
-				.filter({ !$0.isEmpty }))
+		let lines = data.splitAndTrim(separator: "\n")
+		guard lines.count >= 1 else {
+			fatalError("Not enough data \(lines)")
+		}
 		guard lines.count >= 1 else {
 			fatalError("Not enough data \(lines)")
 		}

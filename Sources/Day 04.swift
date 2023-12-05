@@ -43,9 +43,7 @@ struct Day04Part1: AdventDayPart {
 	static var part: Int = 1
 
 	func run() async throws {
-		let lines = Array(
-			data.split(separator: "\n").map({ $0.trimmingCharacters(in: .whitespaces) })
-				.filter({ !$0.isEmpty }))
+		let lines = data.splitAndTrim(separator: "\n")
 		guard lines.count >= 1 else {
 			fatalError("Not enough data \(lines)")
 		}
@@ -82,8 +80,7 @@ struct Day04Part1: AdventDayPart {
 		}
 
 		init(result: String) {
-			let chunks = Array(
-				result.split(separator: ":").map({ $0.trimmingCharacters(in: .whitespaces) }))
+			let chunks = result.splitAndTrim(separator: ":")
 			guard chunks.count == 2 else {
 				fatalError("Missing ID or Results for '\(result)'")
 			}
@@ -100,25 +97,16 @@ struct Day04Part1: AdventDayPart {
 			}
 			id = idTmp
 
-			let scoreChunks = Array(
-				chunks[1]
-					.split(separator: "|")
-					.map({ $0.trimmingCharacters(in: .whitespaces) })
-			)
+			let scoreChunks = chunks[1].splitAndTrim(separator: "|")
 			guard scoreChunks.count == 2 else {
 				fatalError(
 					"Expected two groups numbers for '\(result)', but got \(scoreChunks)"
 				)
 			}
-			winningNumbers = Self.parseLineOfInts(from: scoreChunks[0])
-			ownedNumbers = Self.parseLineOfInts(from: scoreChunks[1])
+			winningNumbers = parse(from: scoreChunks[0], separator: " ")
+			ownedNumbers = parse(from: scoreChunks[1], separator: " ")
 		}
-		static func parseLineOfInts(from str: any StringProtocol) -> [Int] {
-			return str.split(separator: " ")
-				.map({ $0.trimmingCharacters(in: .whitespaces) })
-				.filter({ !$0.isEmpty })
-				.compactMap(Int.init)
-		}
+
 		var debugDescription: String {
 			return "Card \(id): \(winningNumbers) \(ownedNumbers) -> \(score)"
 		}
@@ -162,9 +150,7 @@ struct Day04Part2: AdventDayPart {
 	static var part: Int = 2
 
 	func run() async throws {
-		let lines = Array(
-			data.split(separator: "\n").map({ $0.trimmingCharacters(in: .whitespaces) })
-				.filter({ !$0.isEmpty }))
+		let lines = data.splitAndTrim(separator: "\n")
 		guard lines.count >= 1 else {
 			fatalError("Not enough data \(lines)")
 		}
@@ -268,12 +254,11 @@ struct Day04Part2: AdventDayPart {
 		init(result: String) {
 			isACopy = false
 
-			let chunks = Array(
-				result.split(separator: ":").map({ $0.trimmingCharacters(in: .whitespaces) }))
+			let chunks = result.splitAndTrim(separator: ":")
 			guard chunks.count == 2 else {
 				fatalError("Missing ID or Results for '\(result)'")
 			}
-			let idChunks = Array(chunks[0].split(separator: " "))
+			let idChunks = chunks[0].splitAndTrim(separator: " ")
 			guard idChunks.count == 2 else {
 				fatalError(
 					"Missing ID, expected Number for '\(result)', but got \(idChunks)"
@@ -286,27 +271,17 @@ struct Day04Part2: AdventDayPart {
 			}
 			id = idTmp
 
-			let scoreChunks = Array(
-				chunks[1]
-					.split(separator: "|")
-					.map({ $0.trimmingCharacters(in: .whitespaces) })
-			)
+			let scoreChunks = chunks[1].splitAndTrim(separator: "|")
 			guard scoreChunks.count == 2 else {
 				fatalError(
 					"Expected two groups numbers for '\(result)', but got \(scoreChunks)"
 				)
 			}
-			winningNumbers = Self.parseLineOfInts(from: scoreChunks[0])
-			ownedNumbers = Self.parseLineOfInts(from: scoreChunks[1])
+			winningNumbers = parse(from: scoreChunks[0], separator: " ")
+			ownedNumbers = parse(from: scoreChunks[1], separator: " ")
 
 			// This is the first part of scoring a card
 			matchedNumbers = Set(winningNumbers).intersection(Set(ownedNumbers))
-		}
-		static func parseLineOfInts(from str: any StringProtocol) -> [Int] {
-			return str.split(separator: " ")
-				.map({ $0.trimmingCharacters(in: .whitespaces) })
-				.filter({ !$0.isEmpty })
-				.compactMap(Int.init)
 		}
 		var debugDescription: String {
 			return "Card \(id): \(winningNumbers) \(ownedNumbers)"

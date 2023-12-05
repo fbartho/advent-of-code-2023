@@ -39,9 +39,7 @@ struct Day03Part1: AdventDayPart {
 	static var part: Int = 1
 
 	func run() async throws {
-		let lines = Array(
-			data.split(separator: "\n").map({ $0.trimmingCharacters(in: .whitespaces) })
-				.filter({ !$0.isEmpty }))
+		let lines = data.splitAndTrim(separator: "\n")
 		guard lines.count >= 1 else {
 			fatalError("Not enough data \(lines)")
 		}
@@ -304,9 +302,7 @@ struct Day03Part2: AdventDayPart {
 	static var part: Int = 2
 
 	func run() async throws {
-		let lines = Array(
-			data.split(separator: "\n").map({ $0.trimmingCharacters(in: .whitespaces) })
-				.filter({ !$0.isEmpty }))
+		let lines = data.splitAndTrim(separator: "\n")
 		guard lines.count >= 1 else {
 			fatalError("Not enough data \(lines)")
 		}
