@@ -74,7 +74,8 @@ struct Day04Part1: AdventDayPart {
 			if nMinusOne < 0 {
 				// A negative power leads to NaN
 				return 0
-			} else {
+			}
+			else {
 				let result = pow(2, nMinusOne)
 				return result
 			}
@@ -123,8 +124,6 @@ struct Day04Part1: AdventDayPart {
 		}
 	}
 }
- 
- 
 
 /*
  --- Part Two ---
@@ -172,10 +171,10 @@ struct Day04Part2: AdventDayPart {
 
 		let initialCards = lines.map(ScratchCard.init)
 
-//		initialCards.forEach({ print("\($0)") })
+		//		initialCards.forEach({ print("\($0)") })
 		print("----")
 		let bag = CardBag(cards: initialCards)
-//		print("Bag: \(bag)")
+		//		print("Bag: \(bag)")
 		print("----")
 		print("Total ScratchCard count: \(bag.score)")
 	}
@@ -185,42 +184,42 @@ struct Day04Part2: AdventDayPart {
 
 		private(set) var score: Int
 		/// Indexed by CardID, this is the value of this Card including the points from descendents
-		private(set) var scoreTable: [Int:Int]
+		private(set) var scoreTable: [Int: Int]
 
 		init(cards initialCards: [ScratchCard]) {
 			self.initialCards = initialCards
 
 			/**
-			 Copies of scratchcards are scored like normal scratchcards 
+			 Copies of scratchcards are scored like normal scratchcards
 				and have the same card number as the card they copied.
-			 So, if you win a copy of card 10 and it has 5 matching numbers, 
+			 So, if you win a copy of card 10 and it has 5 matching numbers,
 				it would then win a copy of the same cards that the original card 10 won:
-					cards 11, 12, 13, 14, and 15. 
+					cards 11, 12, 13, 14, and 15.
 			 This process repeats until none of the copies cause you to win any more cards. (Cards will never make you copy a card past the end of the table.)
 			 */
 			score = 0
 			scoreTable = [:]
-			// Naive approach, doesn't work with production data because too much memory
-//			var pile = initialCards
-//			while pile.count > 0 {
-//				let card = pile.removeFirst()
-//				let wonCards = card.matchedNumbers.count
-//				for i in (card.id)..<(card.id+wonCards) {
-//					if i >= initialCards.count {
-//						// Cards at the end of the list can't duplicate anything with their matches
-//						break
-//					}
-//					let targetCard = initialCards[i]
-//					let copyStr = card.isACopy ? "[copy]" : ""
-////					print("Card \(card.id)\(copyStr) wins copy of: \(targetCard.id) using range \(card.id)..<\(card.id+wonCards) won: \(wonCards)")
-//					pile.append(targetCard.copied)
-//					counts[card.id] = (counts[card.id] ?? 0) + 1
-//				}
-//				score += 1
-//				if score % 100000 == 0 {
-//					print("Score Update \(score) remaining cards: \(pile.count)")
-//				}
-//			}
+			// Naive approach, doesn't work with production data because too much memory/repeated computations
+			//	var pile = initialCards
+			//	while pile.count > 0 {
+			//		let card = pile.removeFirst()
+			//		let wonCards = card.matchedNumbers.count
+			//		for i in (card.id)..<(card.id+wonCards) {
+			//			if i >= initialCards.count {
+			//				// Cards at the end of the list can't duplicate anything with their matches
+			//				break
+			//			}
+			//			let targetCard = initialCards[i]
+			//			let copyStr = card.isACopy ? "[copy]" : ""
+			////			print("Card \(card.id)\(copyStr) wins copy of: \(targetCard.id) using range \(card.id)..<\(card.id+wonCards) won: \(wonCards)")
+			//			pile.append(targetCard.copied)
+			//			counts[card.id] = (counts[card.id] ?? 0) + 1
+			//		}
+			//		score += 1
+			//		if score % 100000 == 0 {
+			//			print("Score Update \(score) remaining cards: \(pile.count)")
+			//		}
+			//	}
 
 			guard let card = initialCards.first, card.id == 1 else {
 				fatalError("Code has implicit assumption that CardID = Index + 1")
@@ -230,23 +229,26 @@ struct Day04Part2: AdventDayPart {
 				scoreTable[card.id] = 1
 
 				let wonCards = card.matchedNumbers.count
-				for i in (card.id)..<(card.id+wonCards) {
+				for i in (card.id) ..< (card.id + wonCards) {
 					if i >= initialCards.count {
 						// Cards at the end of the list can't duplicate anything with their matches
 						break
 					}
 					// Add the points of every descendant card
 					let targetCard = initialCards[i]
-					scoreTable[card.id] = (scoreTable[card.id] ?? 0) + (scoreTable[targetCard.id] ?? 0)
+					scoreTable[card.id] =
+						(scoreTable[card.id] ?? 0) + (scoreTable[targetCard.id] ?? 0)
 				}
-				score = scoreTable.values.reduce(0,+)
+				score = scoreTable.values.reduce(0, +)
 			}
 		}
 		var debugDescription: String {
-			let countString = initialCards.map({card in
-				let cardScoreStr = String(scoreTable[card.id] ?? -1)
-				return "\(card.id) wins \(cardScoreStr) point(s)"
-			}).joined(separator:"\n\t")
+			let countString =
+				initialCards.map({ card in
+					let cardScoreStr = String(scoreTable[card.id] ?? -1)
+					return "\(card.id) wins \(cardScoreStr) point(s)"
+				})
+				.joined(separator: "\n\t")
 
 			return "Started with \(initialCards.count) -> Ended with: \(score)\n\t\(countString)"
 		}
