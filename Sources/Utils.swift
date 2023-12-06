@@ -45,7 +45,8 @@ extension StringProtocol {
 	public func splitAndTrim(
 		separator: Self.Element, maxSplits: Int = Int.max, omittingEmptySubsequences: Bool = true
 	) -> [String] {
-		let partialResult = split(separator: separator, maxSplits: maxSplits).map({ $0.trimmingCharacters(in: .whitespaces) })
+		let partialResult = split(separator: separator, maxSplits: maxSplits)
+			.map({ $0.trimmingCharacters(in: .whitespaces) })
 		if omittingEmptySubsequences {
 			return partialResult.filter({ !$0.isEmpty })
 		}
@@ -54,10 +55,51 @@ extension StringProtocol {
 	public func splitAndTrim(separator: String, maxSplits: Int = Int.max, omittingEmptySubsequences: Bool = true)
 		-> [String]
 	{
-		let partialResult = split(separator: separator, maxSplits: maxSplits).map({ $0.trimmingCharacters(in: .whitespaces) })
+		let partialResult = split(separator: separator, maxSplits: maxSplits)
+			.map({ $0.trimmingCharacters(in: .whitespaces) })
 		if omittingEmptySubsequences {
 			return partialResult.filter({ !$0.isEmpty })
 		}
 		return partialResult
+	}
+}
+
+struct ProgressLogger {
+	let prefix: String
+	/// Powers of 2 might grow too fast for satisfying feedback
+	let strideMultiple: Double
+	var currentThreshold: Double
+
+	mutating func tick(counter: Int, extra: () -> String = { "" }) {
+		tick(counter: Double(counter))
+	}
+	mutating func tick(counter: Double, extra: () -> String = { "" }) {
+		if counter > currentThreshold {
+			currentThreshold = currentThreshold * strideMultiple
+			print("\(prefix): \(Decimal(counter))\(extra())")
+		}
+	}
+}
+struct PercentageFormatter {
+	static func format(total: Double, remaining: Double) -> String {
+		let completed = total-remaining
+		let percentComplete = (completed) / (total) * 100
+		return "\(String(format:"%.2f%%", percentComplete)) - completed: \(Int(completed)) remaining: \(Int(remaining))"
+	}
+}
+
+extension Slice where Base == ClosedRange<Int> {
+	var alternateDescription: String {
+		guard !isEmpty else {
+			return "<Empty Range>"
+		}
+		return "\(ClosedRange(self))"
+	}
+}
+extension ClosedRange where Bound: Strideable, Bound.Stride: SignedInteger {
+	init(_ slice: Slice<Self>) {
+		let lower = slice.base[slice.startIndex]
+		let upper = slice.base[slice.index(before: slice.endIndex)]
+		self.init(uncheckedBounds: (lower: lower, upper: upper))
 	}
 }
