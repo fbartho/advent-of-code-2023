@@ -154,7 +154,7 @@ struct Day05Part1: AdventDayPart {
 			return continueLookup(for: num, source: numType, finalNumType: finalNumType)
 		}
 		var seedToLocations: [Int: Int] {
-			return seeds.reduce(into: [:], {$0[$1] = lookupLocation(for: $1)})
+			return seeds.reduce(into: [:], { $0[$1] = lookupLocation(for: $1) })
 		}
 
 		var debugDescription: String {
@@ -165,7 +165,7 @@ struct Day05Part1: AdventDayPart {
 		struct Map: CustomDebugStringConvertible, HasInitFromString {
 			let from: String
 			let to: String
-			/// Keyed
+
 			let entries: [Entry]
 
 			init(_ str: String) {
@@ -243,6 +243,285 @@ struct Day05Part1: AdventDayPart {
 					}
 					return .success(search - source.lowerBound + destination.lowerBound)
 				}
+				var debugDescription: String {
+					return
+						"\(destination.lowerBound) \(source.lowerBound) \(length) [d: \(destination) s: \(source)]"
+				}
+			}
+		}
+	}
+}
+
+/*
+ --- Part Two ---
+
+ Everyone will starve if you only plant such a small number of seeds. Re-reading the almanac, it looks like the seeds: line actually describes ranges of seed numbers.
+
+ The values on the initial seeds: line come in pairs. Within each pair, the first value is the start of the range and the second value is the length of the range. So, in the first line of the example above:
+
+ seeds: 79 14 55 13
+ This line describes two ranges of seed numbers to be planted in the garden. The first range starts with seed number 79 and contains 14 values: 79, 80, ..., 91, 92. The second range starts with seed number 55 and contains 13 values: 55, 56, ..., 66, 67.
+
+ Now, rather than considering four seed numbers, you need to consider a total of 27 seed numbers.
+
+ In the above example, the lowest location number can be obtained from seed number 82, which corresponds to soil 84, fertilizer 84, water 84, light 77, temperature 45, humidity 46, and location 46. So, the lowest location number is 46.
+
+ Consider all of the initial seed numbers listed in the ranges on the first line of the almanac. What is the lowest location number that corresponds to any of the initial seed numbers?
+ */
+struct Day05Part2: AdventDayPart {
+	var data: String
+
+	static var day: Int = 5
+	static var part: Int = 2
+
+	func run() async throws {
+		let almanac = Almanac(data)
+		print("Almanac:\n\(almanac)")
+		print("-----")
+		/// Single-threaded Range-based approach
+		///  Instead of iterating over the components, we try to thread a whole range through
+		///    This sometimes causes the need to split a range so it can be fullfilled by two different map entries.
+		let loc = almanac.lowestSeedLocation()
+		// Expected Test Result: 46
+		// Expected Prod Result: 99751240
+
+		// Time to beat:    (multi-threaded) 4603.94931525 seconds
+		// Final approach: (single-threaded)    0.01363404 seconds
+		print("Min seed location: \(loc)")
+	}
+
+	final class Almanac: CustomDebugStringConvertible {
+		/// Ranges describing a bunch of sequential seeds
+		let seeds: [ClosedRange<Int>]
+		/// Keyed by 'source'
+		let mappings: [String: Map]
+
+		init(_ str: String) {
+			let firstBits = str.splitAndTrim(separator: "\n", maxSplits: 1)
+			guard firstBits.count == 2 else {
+				fatalError("Invalid Almanac Definition: expected seeds and mappings\n\(str)")
+			}
+			guard firstBits[0].hasPrefix("seeds: ") else {
+				fatalError("Invalid Almanac Definition: first line should start with 'seeds:'\n\(str)")
+			}
+			let seedNums = firstBits[0].trimmingPrefix("seeds:")
+			let seedRangeBits: [Int] = parse(from: seedNums, separator: " ")
+			guard seedRangeBits.count % 2 == 0 else {
+				fatalError(
+					"Invalid Almanac Definition: expected even number elements to form ranges 'seeds:'\n\(str)"
+				)
+			}
+
+			// 'seeds' now contains seed-ranges!
+			seeds = stride(from: 0, to: seedRangeBits.count, by: 2)
+				.reduce(
+					into: [],
+					{ result, i in
+						let start = seedRangeBits[i]
+						let length = seedRangeBits[i + 1]
+						result.append(start ... (start + length - 1))
+					})
+
+			let mapChunks: [Map] = parse(from: firstBits[1], separator: "\n\n")
+			mappings = mapChunks.reduce(into: [:], { $0[$1.from] = $1 })
+		}
+
+		/// Start Point
+		private static let startMapKey = "seed"
+		/// Terminus Mapping
+		private static let locationMapKey = "location"
+
+		public func lookupLocations(for ranges: [ClosedRange<Int>]) -> [ClosedRange<Int>] {
+			return continueLookup(for: ranges, source: Self.startMapKey, finalNumType: Self.locationMapKey)
+		}
+		private func continueLookup(for initialRanges: [ClosedRange<Int>], source: String, finalNumType: String)
+			-> [ClosedRange<Int>]
+		{
+			guard let map = mappings[source] else {
+				fatalError("No mapping for source: '\(source)'")
+			}
+			let nextSource = map.to
+			let nextRanges = Array(initialRanges.map({ map.lookup(range: $0) }).joined())
+			// print("from: \(source) ranges: \(initialRanges.map({$0.alternateDescription})) to: \(nextSource) nextRanges: \(nextRanges.map({$0.alternateDescription}))")
+
+			if nextSource == finalNumType {
+				return nextRanges
+			}
+			return continueLookup(for: nextRanges, source: nextSource, finalNumType: finalNumType)
+		}
+
+		/// Single-threaded Range-based approach
+		///  Instead of iterating over the components, we try to thread a whole range through
+		///    This sometimes causes the need to split a range so it can be fullfilled by two different map entries.
+		func lowestSeedLocation() -> Int {
+			let locations = lookupLocations(for: seeds)
+			guard locations.count > 0 else {
+				fatalError("No locations found")
+			}
+			// debugPrint(seeds.map({$0.alternateDescription})," becomes ", locations.map({$0.alternateDescription}))
+			let lowestLocation = locations.map({ $0.lowerBound }).min()!
+			return lowestLocation
+		}
+
+		var debugDescription: String {
+			let mapsStr = mappings.values.map({ "\($0)" }).joined(separator: "\n\n")
+			return "seeds: \(seeds.map({"\($0)"}).joined(separator: " "))\n\n\(mapsStr)"
+		}
+
+		final class Map: CustomDebugStringConvertible, HasInitFromString {
+			let from: String
+			let to: String
+
+			let entries: [Entry]
+
+			init(_ str: String) {
+				let lines = str.splitAndTrim(separator: "\n")
+				guard lines.count >= 1 else {
+					fatalError("Invalid map, needs a source-to-destination label. \(str)")
+				}
+				// First line: looks like 'foo-to-bar map:'
+				guard lines[0].hasSuffix(" map:") else {
+					fatalError(
+						"Invalid map, needs a source-to-destination label, was not properly terminated. \(str)"
+					)
+				}
+				let mappingHeaderBits = lines[0].splitAndTrim(separator: " ")
+				guard mappingHeaderBits.count == 2 else {
+					fatalError(
+						"Invalid map, needs a source-to-destination label, wrong number of components. \(str)"
+					)
+				}
+				let fromTo = mappingHeaderBits[0].split(separator: "-to-")
+				guard fromTo.count == 2 else {
+					fatalError(
+						"Invalid map, needs a source-to-destination label, no '-to-' found. \(str)"
+					)
+				}
+				from = String(fromTo[0])
+				to = String(fromTo[1])
+
+				let remaining = lines.dropFirst()
+				entries = remaining.map(Entry.init)
+			}
+
+			func lookup(range firstRange: ClosedRange<Int>) -> [ClosedRange<Int>] {
+				var ranges: [ClosedRange<Int>] = []
+				var unprocessed = [firstRange]
+
+				unprocessedLoop: while unprocessed.count > 0 {
+					let range = unprocessed.removeLast()
+					entryLoop: for entry in entries {
+						let eResult = entry.lookup(range: range)
+						switch eResult {
+						case .notFound:
+							// Continue iterating entries
+							continue entryLoop
+						case .perfect(let finalRange):
+							ranges.append(finalRange)
+							continue unprocessedLoop
+						case .partial(let tuple):
+							ranges.append(tuple.processed)
+							unprocessed.append(contentsOf: tuple.remainder.reversed())
+							continue unprocessedLoop
+						}
+					}
+					// if there are no matched entries, then you pass the range through unmodified
+					ranges.append(range)
+				}
+				// debugPrint("from: \(from) to: \(to) range \(firstRange) mapped to: ", ranges)
+				return ranges
+			}
+
+			var debugDescription: String {
+				let entriesStr = entries.map({ "\($0)" }).joined(separator: "\n")
+				return "\(from)-to-\(to) map:\n\(entriesStr)"
+			}
+
+			enum RangeLookupResult {
+				case notFound
+				/// Perfectly within
+				case perfect(ClosedRange<Int>)
+				/// A partial match, this range produces new ranges that need to be processed in a different entry
+				case partial((processed: ClosedRange<Int>, remainder: [ClosedRange<Int>]))
+			}
+			struct Entry: CustomDebugStringConvertible, HasInitFromString {
+				let destination: ClosedRange<Int>
+				let source: ClosedRange<Int>
+				let length: Int
+
+				init(_ line: String) {
+					let bits: [Int] = parse(from: line, separator: " ")
+					guard bits.count == 3 else {
+						fatalError(
+							"Invalid Map.Entry description, expected 3 Integer components: \(line)"
+						)
+					}
+					length = bits[2]
+					destination = bits[0] ... bits[0] + length - 1
+					source = bits[1] ... bits[1] + length - 1
+				}
+				func lookup(range: ClosedRange<Int>) -> RangeLookupResult {
+					if !source.overlaps(range) {
+						return .notFound
+					}
+					if source.lowerBound <= range.lowerBound
+						&& source.upperBound >= range.upperBound
+					{
+						// Target range is fully within source, transform our range
+						let startOffset = range.lowerBound - source.lowerBound
+						let newLower = destination.lowerBound + startOffset
+						let newUpper = newLower + range.count - 1
+						return .perfect(newLower ... newUpper)
+					}
+
+					var remainder: [ClosedRange<Int>] = []
+					let outputRange: ClosedRange<Int>
+
+					let rangeExistsBelow = source.lowerBound > range.lowerBound
+					let rangeExistsAbove = range.upperBound > source.upperBound
+
+					var unprocessedItems = range.count
+
+					if rangeExistsBelow {
+						// continue processing the part of the range that is below this source-range
+						let remainingRange = range.lowerBound ... (source.lowerBound - 1)
+
+						unprocessedItems -= remainingRange.count
+
+						remainder.append(remainingRange)
+					}
+					if rangeExistsAbove {
+						// continue processing the part of the range that is above this source-range
+						let remainingRange = (source.upperBound + 1) ... range.upperBound
+
+						unprocessedItems -= remainingRange.count
+
+						remainder.append(remainingRange)
+					}
+
+					if rangeExistsAbove && rangeExistsBelow {
+						// Range covers the source
+						outputRange = destination
+					} else {
+						let matchedStart = max(source.lowerBound, range.lowerBound)
+						let matchedEnd = min(source.upperBound, range.upperBound)
+
+						let startOffset = matchedStart - source.lowerBound
+						let span = matchedEnd - matchedStart
+
+						let finalStart = destination.lowerBound + startOffset
+						outputRange = (finalStart) ... (finalStart + span)
+					}
+
+					guard unprocessedItems - outputRange.count == 0 else {
+						fatalError(
+							"Lost some items \(range.alternateDescription) \(source.alternateDescription) \(destination.alternateDescription) \(outputRange.alternateDescription) \(remainder.map({$0.alternateDescription}))"
+						)
+					}
+
+					return .partial((processed: outputRange, remainder: remainder))
+				}
+
 				var debugDescription: String {
 					return
 						"\(destination.lowerBound) \(source.lowerBound) \(length) [d: \(destination) s: \(source)]"
