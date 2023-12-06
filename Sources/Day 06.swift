@@ -57,7 +57,7 @@ struct Day06Part1: AdventDayPart {
 		let boat = Boat()
 		print("\(boat)")
 		print("------")
-		let strategies = scoreboard.races.map({$0.calculateWinningStrategies(for: boat)})
+		let strategies = scoreboard.calculateWinningStrategies(for: boat)
 		print("\(strategies)\n\(strategies.map({$0.count}))")
 		print("------")
 		let margin = marginForError(strategies)
@@ -144,3 +144,125 @@ struct Day06Part1: AdventDayPart {
 		}
 	}
 }
+ 
+
+/*
+ --- Part Two ---
+
+ As the race is about to start, you realize the piece of paper with race times and record distances you got earlier actually just has very bad kerning. There's really only one race - ignore the spaces between the numbers on each line.
+
+ So, the example from before:
+
+ Time:      7  15   30
+ Distance:  9  40  200
+ ...now instead means this:
+
+ Time:      71530
+ Distance:  940200
+ Now, you have to figure out how many ways there are to win this single race. In this example, the race lasts for 71530 milliseconds and the record distance you need to beat is 940200 millimeters. You could hold the button anywhere from 14 to 71516 milliseconds and beat the record, a total of 71503 ways!
+
+ How many ways can you beat the record in this one much longer race?
+ */
+struct Day06Part2: AdventDayPart {
+	var data: String
+
+	static var day: Int = 06
+	static var part: Int = 2
+
+	func run() async throws {
+		let scoreboard = RaceResults(data)
+		print("\(scoreboard)")
+		print("------")
+		let boat = Boat()
+		print("\(boat)")
+		print("------")
+		let strategies = scoreboard.calculateWinningStrategyCounts(for: boat)
+		print("\(strategies)")
+	}
+
+	/// To see how much margin of error you have, determine the number of ways you can beat
+	/// the record in each race; in this example, if you multiply these values together, you get 288 (4 * 8 * 9).
+	func marginForError(_ strategies: [[RaceStrategy]]) -> Int {
+		return strategies.map({$0.count}).reduce(1, *)
+	}
+
+	struct Boat {
+		/// Speed the boat increments per millisecond of hold time
+		/// eg. 3 secondsHeld * boatSpeedIncrement = 3
+		let boatSpeedIncrement = 1
+
+		/// duration held -> distance traveled with current speed increment
+		func distance(accelerationTime: Int, raceDuration: Int) -> Int {
+			guard accelerationTime<=raceDuration else {
+				fatalError("Validation Error: accelerationTime must be <= raceDuration (\(accelerationTime), \(raceDuration))")
+			}
+			let velocity = accelerationTime * boatSpeedIncrement
+			let travelTime = raceDuration - accelerationTime
+			return velocity * travelTime
+		}
+	}
+	struct RaceStrategy: CustomDebugStringConvertible {
+		/// Time in ms you held the accelerate button
+		let holdTime: Int
+
+		/// Distance in ms you should expect to travel
+		let expectedDistance: Int
+
+		init(holdTime: Int, boat: Boat, raceDuration: Int){
+			self.holdTime = holdTime
+
+			expectedDistance = boat.distance(accelerationTime: holdTime, raceDuration: raceDuration)
+		}
+		var debugDescription: String {
+			return "(h: \(holdTime) d: \(expectedDistance))"
+		}
+	}
+	struct RaceResults: CustomDebugStringConvertible {
+		let races: [Race]
+
+		/// Format
+		/// 	Time:      7  15   30
+		/// 	Distance:  9  40  200
+		init(_ str: String) {
+			let lines = str.splitAndTrim(separator: "\n")
+			guard lines.count >= 2 else {
+				fatalError("Not enough data \(lines)")
+			}
+
+			let times: [Int] = parse(from: lines[0].verifyAndDrop(prefix: "Time:").strippingAllNonDigits(), separator: " ")
+			let distances: [Int] = parse(from: lines[1].verifyAndDrop(prefix: "Distance:").strippingAllNonDigits(), separator: " ")
+			guard times.count == distances.count else {
+				fatalError("ValidationError: Times must be paired with record distances")
+			}
+
+			races = zip(times, distances).map({(time, distance) in Race(duration: time, distance: distance)})
+		}
+		var debugDescription: String {
+			return "Time: \(races.map({$0.duration}))\nDistance: \(races.map({$0.distance}))"
+		}
+
+		func calculateWinningStrategyCounts(for boat: Boat) -> [Int] {
+			return races.map({$0.calculateWinningStrategyCount(for: boat)})
+		}
+
+		struct Race {
+			/// Race duration in ms
+			let duration: Int
+			/// Record distance in mm
+			let distance: Int
+
+			func calculateWinningStrategyCount(for boat: Boat) -> Int {
+				var result = 0
+				for hypothesis in (1..<duration) {
+					let strat = RaceStrategy(holdTime: hypothesis, boat: boat, raceDuration: duration)
+					if strat.expectedDistance > distance {
+						result += 1
+					}
+				}
+				return result
+			}
+
+		}
+	}
+}
+
