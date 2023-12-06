@@ -62,6 +62,13 @@ extension StringProtocol {
 		}
 		return partialResult
 	}
+
+	public func verifyAndDrop(prefix: String) -> String {
+		guard hasPrefix(prefix) else {
+			fatalError("ValidationError: Expected Prefix '\(prefix)' was not found in '\(self)'")
+		}
+		return String(self.dropFirst(prefix.count)).trimmingCharacters(in: .whitespaces)
+	}
 }
 
 struct ProgressLogger {

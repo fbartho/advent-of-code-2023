@@ -14,10 +14,8 @@ struct DayTemplate00Part1: AdventDayPart, TestData {
 		guard lines.count >= 1 else {
 			fatalError("Not enough data \(lines)")
 		}
-		guard lines.count >= 1 else {
-			fatalError("Not enough data \(lines)")
-		}
 
 		print("You can do this!")
 	}
 }
+
