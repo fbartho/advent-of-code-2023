@@ -168,8 +168,7 @@ struct Day03Part1: AdventDayPart {
 							pendingRange.x =
 								pendingRange.x.lowerBound
 								... (pendingRange.x.upperBound + 1)
-						}
-						else {
+						} else {
 							// Start accumulating number
 							pendingNum = charStr
 							pendingRange.x = charIndex ... charIndex
@@ -431,8 +430,7 @@ struct Day03Part2: AdventDayPart {
 							pendingRange.x =
 								pendingRange.x.lowerBound
 								... (pendingRange.x.upperBound + 1)
-						}
-						else {
+						} else {
 							// Start accumulating number
 							pendingNum = charStr
 							pendingRange.x = charIndex ... charIndex

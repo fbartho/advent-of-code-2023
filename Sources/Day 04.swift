@@ -72,8 +72,7 @@ struct Day04Part1: AdventDayPart {
 			if nMinusOne < 0 {
 				// A negative power leads to NaN
 				return 0
-			}
-			else {
+			} else {
 				let result = pow(2, nMinusOne)
 				return result
 			}

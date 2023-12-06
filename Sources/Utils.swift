@@ -82,9 +82,16 @@ struct ProgressLogger {
 }
 struct PercentageFormatter {
 	static func format(total: Double, remaining: Double) -> String {
-		let completed = total-remaining
+		let completed = total - remaining
 		let percentComplete = (completed) / (total) * 100
-		return "\(String(format:"%.2f%%", percentComplete)) - completed: \(Int(completed)) remaining: \(Int(remaining))"
+		return
+			"\(String(format:"%.2f%%", percentComplete)) - completed: \(Int(completed)) remaining: \(Int(remaining))"
+	}
+}
+
+extension ClosedRange<Int> {
+	var alternateDescription: String {
+		return "\(self)-len: \(count)"
 	}
 }
 

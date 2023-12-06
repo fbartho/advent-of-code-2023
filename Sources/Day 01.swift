@@ -118,8 +118,7 @@ private let replacements: [(Regex<(Substring, Substring)>, String?)] = {
 			(try Regex("(eight)"), "8"),
 			(try Regex("(nine)"), "9"),
 		]
-	}
-	catch let localError {  // 1
+	} catch let localError {  // 1
 		print(type(of: localError))
 		fatalError("These are legit expressions!, \(localError)")
 	}
