@@ -58,7 +58,7 @@ struct Day06Part1: AdventDayPart {
 		print("\(boat)")
 		print("------")
 		let strategies = scoreboard.calculateWinningStrategies(for: boat)
-		print("\(strategies)\n\(strategies.map({$0.count}))")
+		print("\(strategies)\n\(strategies.map(\.count))")
 		print("------")
 		let margin = marginForError(strategies)
 		print("\(margin)")
@@ -67,7 +67,7 @@ struct Day06Part1: AdventDayPart {
 	/// To see how much margin of error you have, determine the number of ways you can beat
 	/// the record in each race; in this example, if you multiply these values together, you get 288 (4 * 8 * 9).
 	func marginForError(_ strategies: [[RaceStrategy]]) -> Int {
-		return strategies.map({$0.count}).reduce(1, *)
+		return strategies.map(\.count).reduce(1, *)
 	}
 
 	struct Boat {
@@ -122,7 +122,7 @@ struct Day06Part1: AdventDayPart {
 			races = zip(times, distances).map({(time, distance) in Race(duration: time, distance: distance)})
 		}
 		var debugDescription: String {
-			return "Time: \(races.map({$0.duration}))\nDistance: \(races.map({$0.distance}))"
+			return "Time: \(races.map(\.duration))\nDistance: \(races.map(\.distance))"
 		}
 
 		func calculateWinningStrategies(for boat: Boat) -> [[RaceStrategy]] {
@@ -183,7 +183,7 @@ struct Day06Part2: AdventDayPart {
 	/// To see how much margin of error you have, determine the number of ways you can beat
 	/// the record in each race; in this example, if you multiply these values together, you get 288 (4 * 8 * 9).
 	func marginForError(_ strategies: [[RaceStrategy]]) -> Int {
-		return strategies.map({$0.count}).reduce(1, *)
+		return strategies.map(\.count).reduce(1, *)
 	}
 
 	struct Boat {
@@ -238,7 +238,7 @@ struct Day06Part2: AdventDayPart {
 			races = zip(times, distances).map({(time, distance) in Race(duration: time, distance: distance)})
 		}
 		var debugDescription: String {
-			return "Time: \(races.map({$0.duration}))\nDistance: \(races.map({$0.distance}))"
+			return "Time: \(races.map(\.duration))\nDistance: \(races.map(\.distance))"
 		}
 
 		func calculateWinningStrategyCounts(for boat: Boat) -> [Int] {

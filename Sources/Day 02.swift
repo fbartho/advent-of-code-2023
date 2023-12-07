@@ -47,7 +47,7 @@ struct Day02Part1: AdventDayPart {
 		let gameBag = Game.parseGameBoard(state: availableBlocksString)
 
 		let games = lines[1...].map { Game(result: $0) }
-		print("Games:\n\(games.map({$0.debugDescription}).joined(separator:"\n"))")
+		print("Games:\n\(games.map(\.debugDescription).joined(separator:"\n"))")
 
 		let possibleGameIds: [Int] = games.filter({ $0.isPossibleGame(for: gameBag) })
 			.map(\.id)
@@ -195,7 +195,7 @@ struct Day02Part2: AdventDayPart {
 		}
 
 		let games = lines.map { Game(result: $0) }
-		print("Games:\n\(games.map({$0.debugDescription}).joined(separator:"\n"))")
+		print("Games:\n\(games.map(\.debugDescription).joined(separator:"\n"))")
 
 		let minimumBags = Array(games.map(\.minimumGameBag))
 		let bagPowers = Array(minimumBags.map({ Game.gameBagPower($0) }))

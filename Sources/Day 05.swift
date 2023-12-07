@@ -342,7 +342,7 @@ struct Day05Part2: AdventDayPart {
 			}
 			let nextSource = map.to
 			let nextRanges = Array(initialRanges.map({ map.lookup(range: $0) }).joined())
-			// print("from: \(source) ranges: \(initialRanges.map({$0.alternateDescription})) to: \(nextSource) nextRanges: \(nextRanges.map({$0.alternateDescription}))")
+			// print("from: \(source) ranges: \(initialRanges.map(\.alternateDescription)) to: \(nextSource) nextRanges: \(nextRanges.map(\.alternateDescription))")
 
 			if nextSource == finalNumType {
 				return nextRanges
@@ -358,7 +358,7 @@ struct Day05Part2: AdventDayPart {
 			guard locations.count > 0 else {
 				fatalError("No locations found")
 			}
-			// debugPrint(seeds.map({$0.alternateDescription})," becomes ", locations.map({$0.alternateDescription}))
+			// debugPrint(seeds.map(\.alternateDescription)," becomes ", locations.map({$0.alternateDescription}))
 			let lowestLocation = locations.map({ $0.lowerBound }).min()!
 			return lowestLocation
 		}
@@ -515,7 +515,7 @@ struct Day05Part2: AdventDayPart {
 
 					guard unprocessedItems - outputRange.count == 0 else {
 						fatalError(
-							"Lost some items \(range.alternateDescription) \(source.alternateDescription) \(destination.alternateDescription) \(outputRange.alternateDescription) \(remainder.map({$0.alternateDescription}))"
+							"Lost some items \(range.alternateDescription) \(source.alternateDescription) \(destination.alternateDescription) \(outputRange.alternateDescription) \(remainder.map(\.alternateDescription))"
 						)
 					}
 
