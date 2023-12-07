@@ -244,3 +244,241 @@ struct Day07Part1: AdventDayPart {
 	}
 }
 
+/*
+ --- Part Two ---
+
+ To make things a little more interesting, the Elf introduces one additional rule. Now, J cards are jokers - wildcards that can act like whatever card would make the hand the strongest type possible.
+
+ To balance this, J cards are now the weakest individual cards, weaker even than 2. The other cards stay in the same order: A, K, Q, T, 9, 8, 7, 6, 5, 4, 3, 2, J.
+
+ J cards can pretend to be whatever card is best for the purpose of determining hand type; for example, QJJQ2 is now considered four of a kind. However, for the purpose of breaking ties between two hands of the same type, J is always treated as J, not the card it's pretending to be: JKKK2 is weaker than QQQQ2 because J is weaker than Q.
+
+ Now, the above example goes very differently:
+
+ 32T3K 765
+ T55J5 684
+ KK677 28
+ KTJJT 220
+ QQQJA 483
+ 32T3K is still the only one pair; it doesn't contain any jokers, so its strength doesn't increase.
+ KK677 is now the only two pair, making it the second-weakest hand.
+ T55J5, KTJJT, and QQQJA are now all four of a kind! T55J5 gets rank 3, QQQJA gets rank 4, and KTJJT gets rank 5.
+ With the new joker rule, the total winnings in this example are 5905.
+
+ Using the new joker rule, find the rank of every hand in your set. What are the new total winnings?
+ */
+struct Day07Part2: AdventDayPart {
+	var data: String
+
+	static var day: Int = 7
+	static var part: Int = 2
+
+	func run() async throws {
+		let handSet = HandSet(data)
+		let rankBuckets = handSet.updateRanks()
+		let sortedBucketKeys = rankBuckets.keys.sorted()
+		for handTypeIndex in sortedBucketKeys {
+			let bucket = rankBuckets[handTypeIndex]!
+			let handTypeName = String(describing: HandType(rawValue: handTypeIndex)!)
+			print("\n\(handTypeName) \(bucket.count) entries: \(bucket)")
+		}
+		print("-------")
+		print("\(handSet)")
+		print("-------")
+		let winnings = handSet.winnings
+		print("\(winnings)")
+	}
+	enum HandType: Int {
+		/// High card, where all cards' labels are distinct: 23456
+		case highCard = 0
+		/// One pair, where two cards share one label, and the other three cards have a different label from the pair and each other: A23A4
+		case onePair
+		/// Two pair, where two cards share one label, two other cards share a second label, and the remaining card has a third label: 23432
+		case twoPair
+		/// Three of a kind, where three cards have the same label, and the remaining two cards are each different from any other card in the hand: TTT98
+		case threeOfAKind
+		/// Full house, where three cards have the same label, and the remaining two cards share a different label: 23332
+		case fullHouse
+		/// Four of a kind, where four cards have the same label and one card has a different label: AA8AA
+		case fourOfAKind
+		/// Five of a kind, where all five cards have the same label: AAAAA
+		case fiveOfAKind
+
+		static var weakest = HandType.highCard
+		static var strongest = HandType.fiveOfAKind
+		static var typesInDescendingStrength = ((weakest.rawValue)...(strongest.rawValue)).reversed().map({HandType(rawValue: $0)})
+
+		static func handType(for cardValues: [Int]) -> HandType {
+			let cardCounts: [Int: Int] = cardValues.reduce(into: [:], {result, charIndex in
+				guard let currentCount = result[charIndex] else {
+					result[charIndex] = 1
+					return
+				}
+
+				result[charIndex] = currentCount + 1
+			})
+
+			let jokerCount = cardCounts[Hand.jokerValue] ?? 0
+			if jokerCount == 5 || jokerCount == 4 {
+				// Short circuit
+				return .fiveOfAKind
+			}
+
+			let sortedCounts = cardCounts.values.sorted()
+			let uniqueSymbols = Set(cardValues)
+			if uniqueSymbols.count == 1 {
+				return .fiveOfAKind
+			}
+			if uniqueSymbols.count == 2 {
+				switch (sortedCounts[0], sortedCounts[1]) {
+				case (1, 4):
+					return switch jokerCount {
+					case 1, 4: .fiveOfAKind
+					default: .fourOfAKind
+					}
+				case (2, 3):
+					return switch jokerCount {
+					case 2, 3: .fiveOfAKind
+					default: .fullHouse
+					}
+				default:
+					fatalError("ValidationError: [2-symbols] handType cannot be determined due to an invalid number of card types \(cardValues)")
+				}
+			}
+			if uniqueSymbols.count == 3 {
+				switch (sortedCounts[0], sortedCounts[1], sortedCounts[2]) {
+				case (1, 1, 3):
+					return switch jokerCount {
+					case 3: .fourOfAKind
+					case 1: .fourOfAKind
+					default: .threeOfAKind
+					}
+				case (1, 2, 2):
+					return switch jokerCount {
+					case 2: .fourOfAKind
+					case 1: .fullHouse
+					default: .twoPair
+					}
+				default:
+					fatalError("ValidationError: [3-symbols] handType cannot be determined due to an invalid number of card types \(cardValues)")
+				}
+			}
+			if uniqueSymbols.count == 4 {
+				return switch jokerCount {
+				case 1, 2: .threeOfAKind
+				default: .onePair
+				}
+			}
+			if uniqueSymbols.count == 5 {
+				return switch jokerCount {
+				case 1: .onePair
+				default: .highCard
+				}
+			}
+			fatalError("ValidationError: 1. handType cannot be determined due to an invalid number of card types \(cardValues)")
+		}
+	}
+	final class HandSet: CustomDebugStringConvertible {
+		let hands: [Hand]
+		init(_ str: String) {
+			hands = parse(from: str, separator: "\n")
+		}
+		@discardableResult func updateRanks() -> [Int: [Hand]]{
+			var buckets: [Int: [Hand]] = hands.reduce(into: [:], {accum, hand in
+				let bucketIndex = hand.handType.rawValue
+				if accum[bucketIndex] == nil {
+					accum[bucketIndex] = []
+				}
+				accum[hand.handType.rawValue]!.append(hand)
+			})
+
+			// Sort every bucket, so hands are in increasing order within their bucket of the same type
+			for handTypeIndex in buckets.keys {
+				buckets[handTypeIndex]!.sort(by: {a, b in
+					return a.cardSortValue < b.cardSortValue
+				})
+			}
+
+			var nextRank = 1
+			for handTypeIndex in buckets.keys.sorted() {
+				let bucket = buckets[handTypeIndex]!
+				for hand in bucket {
+					hand.rank = nextRank
+					nextRank += 1
+				}
+			}
+			return buckets
+		}
+		var winnings: Int {
+			return hands.map(\.score).reduce(0, +)
+		}
+		var debugDescription: String {
+			let handStr = hands.map({"\($0)"}).joined(separator:"\n")
+			return "Hands:\n\(handStr)"
+		}
+	}
+	final class Hand: CustomDebugStringConvertible, HasInitFromString {
+
+		let cards: String
+		let bid: Int
+		let handType: HandType
+
+		// Each card converted to an index into cardsInAscendingOrder
+		let cardValues: [Int]
+		/// For hands of the same handType, this value will distinguish the higher cards from the lower ones
+		let cardSortValue: Int
+
+		init(_ str: String) {
+			let bits = str.splitAndTrim(separator: " ")
+			guard bits.count == 2 else {
+				fatalError("ValidationError: Expected a list of cards followed by a number bid! '\(str)'")
+			}
+			cards = bits[0]
+			guard cards.count == 5 && cards.allSatisfy({Self.availableCards.contains($0)}) else {
+				fatalError("ValidationError: Broken hand, unexpected card face value \(cards)")
+			}
+			cardValues = cards.map({Self.cardsInAscendingOrder.firstIndex(of: $0)!})
+
+			// Start by comparing the first card in each hand.
+			// If these cards are different, the hand with the stronger first card is considered stronger.
+			// If the first card in each hand have the same label, however, then move on to considering the second card in each hand. If they differ, the hand with the higher second card wins; otherwise, continue with the third card in each hand, then the fourth, then the fifth.
+			let reversedValues = Array(cardValues.reversed())
+			var tmp: Int = 0
+			for digit in 0..<cardValues.count {
+				let digitValue = reversedValues[digit]
+				tmp += Int(pow(Self.cardSortValueDigitMagnitudeChange, Double(digit)) * Double(digitValue))
+			}
+			cardSortValue = tmp
+
+			guard let tmp = Int(bits[1]) else {
+				fatalError("ValidationError: Expected a hand bid, as an integer, but got \(bits[1])")
+			}
+			bid = tmp
+			handType = HandType.handType(for: cardValues)
+			rank = -1
+		}
+
+		var rank: Int
+
+		var score: Int {
+			guard rank > 0 else {
+				fatalError("API Misuse: rank needs to be assigned before score can be computed")
+			}
+			return bid * rank
+		}
+
+		var debugDescription: String {
+			return "\(cards) \(bid)\t(\(String(describing: handType).padding(toLength: 11, withPad:" ", startingAt: 0)) \("\(rank)".padding(toLength: 5, withPad:" ", startingAt: 0)) s: \(cardSortValue))"
+		}
+
+		static var cardsInAscendingOrder = Array("AKQT98765432J".reversed())
+		static var jokerValue = 0
+		static var availableCards = Set(cardsInAscendingOrder)
+
+		/// Because we have 13 card faces, we can't pack them all into a single order of magnitude, we really could do something with base 13,
+		///  but it's just easier to use 100 as the scale between the digits, and "waste" some of the range.
+		///
+		/// Using 10 here would lead to cards sorting in a slightly different order, which would lead to the wrong result on production datasets!
+		static var cardSortValueDigitMagnitudeChange: Double = 100
+	}
+}
