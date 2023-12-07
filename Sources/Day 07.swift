@@ -207,7 +207,7 @@ struct Day07Part1: AdventDayPart {
 			var tmp: Int = 0
 			for digit in 0..<cardValues.count {
 				let digitValue = reversedValues[digit]
-				tmp += Int(pow(Double(10), Double(digit)) * Double(digitValue))
+				tmp += Int(pow(Self.cardSortValueDigitMagnitudeChange, Double(digit)) * Double(digitValue))
 			}
 			cardSortValue = tmp
 
@@ -235,6 +235,12 @@ struct Day07Part1: AdventDayPart {
 
 		static var cardsInAscendingOrder = Array("AKQJT98765432".reversed())
 		static var availableCards = Set(cardsInAscendingOrder)
+
+		/// Because we have 13 card faces, we can't pack them all into a single order of magnitude, we really could do something with base 13,
+		///  but it's just easier to use 100 as the scale between the digits, and "waste" some of the range.
+		///
+		/// Using 10 here would lead to cards sorting in a slightly different order, which would lead to the wrong result on production datasets!
+		static var cardSortValueDigitMagnitudeChange: Double = 100
 	}
 }
 
