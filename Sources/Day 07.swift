@@ -93,17 +93,20 @@ struct Day07Part1: AdventDayPart {
 
 		static var weakest = HandType.highCard
 		static var strongest = HandType.fiveOfAKind
-		static var typesInDescendingStrength = ((weakest.rawValue)...(strongest.rawValue)).reversed().map({HandType(rawValue: $0)})
+		static var typesInDescendingStrength = ((weakest.rawValue) ... (strongest.rawValue)).reversed()
+			.map({ HandType(rawValue: $0) })
 
 		static func handType(for cardValues: [Int]) -> HandType {
-			let cardCounts: [Int: Int] = cardValues.reduce(into: [:], {result, charIndex in
-				guard let currentCount = result[charIndex] else {
-					result[charIndex] = 1
-					return
-				}
+			let cardCounts: [Int: Int] = cardValues.reduce(
+				into: [:],
+				{ result, charIndex in
+					guard let currentCount = result[charIndex] else {
+						result[charIndex] = 1
+						return
+					}
 
-				result[charIndex] = currentCount + 1
-			})
+					result[charIndex] = currentCount + 1
+				})
 			let sortedCounts = cardCounts.values.sorted()
 			let uniqueSymbols = Set(cardValues)
 
@@ -117,7 +120,9 @@ struct Day07Part1: AdventDayPart {
 				case (2, 3):
 					return .fullHouse
 				default:
-					fatalError("ValidationError: [2-symbols] handType cannot be determined due to an invalid number of card types \(cardValues)")
+					fatalError(
+						"ValidationError: [2-symbols] handType cannot be determined due to an invalid number of card types \(cardValues)"
+					)
 				}
 			}
 			if uniqueSymbols.count == 3 {
@@ -127,7 +132,9 @@ struct Day07Part1: AdventDayPart {
 				case (1, 2, 2):
 					return .twoPair
 				default:
-					fatalError("ValidationError: [3-symbols] handType cannot be determined due to an invalid number of card types \(cardValues)")
+					fatalError(
+						"ValidationError: [3-symbols] handType cannot be determined due to an invalid number of card types \(cardValues)"
+					)
 				}
 			}
 			if uniqueSymbols.count == 4 {
@@ -136,7 +143,9 @@ struct Day07Part1: AdventDayPart {
 			if uniqueSymbols.count == 5 {
 				return .highCard
 			}
-			fatalError("ValidationError: 1. handType cannot be determined due to an invalid number of card types \(cardValues)")
+			fatalError(
+				"ValidationError: 1. handType cannot be determined due to an invalid number of card types \(cardValues)"
+			)
 		}
 	}
 	final class HandSet: CustomDebugStringConvertible {
@@ -144,20 +153,23 @@ struct Day07Part1: AdventDayPart {
 		init(_ str: String) {
 			hands = parse(from: str, separator: "\n")
 		}
-		@discardableResult func updateRanks() -> [Int: [Hand]]{
-			var buckets: [Int: [Hand]] = hands.reduce(into: [:], {accum, hand in
-				let bucketIndex = hand.handType.rawValue
-				if accum[bucketIndex] == nil {
-					accum[bucketIndex] = []
-				}
-				accum[hand.handType.rawValue]!.append(hand)
-			})
+		@discardableResult func updateRanks() -> [Int: [Hand]] {
+			var buckets: [Int: [Hand]] = hands.reduce(
+				into: [:],
+				{ accum, hand in
+					let bucketIndex = hand.handType.rawValue
+					if accum[bucketIndex] == nil {
+						accum[bucketIndex] = []
+					}
+					accum[hand.handType.rawValue]!.append(hand)
+				})
 
 			// Sort every bucket, so hands are in increasing order within their bucket of the same type
 			for handTypeIndex in buckets.keys {
-				buckets[handTypeIndex]!.sort(by: {a, b in
-					return a.cardSortValue < b.cardSortValue
-				})
+				buckets[handTypeIndex]!
+					.sort(by: { a, b in
+						return a.cardSortValue < b.cardSortValue
+					})
 			}
 
 			var nextRank = 1
@@ -174,7 +186,7 @@ struct Day07Part1: AdventDayPart {
 			return hands.map(\.score).reduce(0, +)
 		}
 		var debugDescription: String {
-			let handStr = hands.map({"\($0)"}).joined(separator:"\n")
+			let handStr = hands.map({ "\($0)" }).joined(separator: "\n")
 			return "Hands:\n\(handStr)"
 		}
 	}
@@ -192,22 +204,24 @@ struct Day07Part1: AdventDayPart {
 		init(_ str: String) {
 			let bits = str.splitAndTrim(separator: " ")
 			guard bits.count == 2 else {
-				fatalError("ValidationError: Expected a list of cards followed by a number bid! '\(str)'")
+				fatalError(
+					"ValidationError: Expected a list of cards followed by a number bid! '\(str)'")
 			}
 			cards = bits[0]
-			guard cards.count == 5 && cards.allSatisfy({Self.availableCards.contains($0)}) else {
+			guard cards.count == 5 && cards.allSatisfy({ Self.availableCards.contains($0) }) else {
 				fatalError("ValidationError: Broken hand, unexpected card face value \(cards)")
 			}
-			cardValues = cards.map({Self.cardsInAscendingOrder.firstIndex(of: $0)!})
+			cardValues = cards.map({ Self.cardsInAscendingOrder.firstIndex(of: $0)! })
 
 			// Start by comparing the first card in each hand.
 			// If these cards are different, the hand with the stronger first card is considered stronger.
 			// If the first card in each hand have the same label, however, then move on to considering the second card in each hand. If they differ, the hand with the higher second card wins; otherwise, continue with the third card in each hand, then the fourth, then the fifth.
 			let reversedValues = Array(cardValues.reversed())
 			var tmp: Int = 0
-			for digit in 0..<cardValues.count {
+			for digit in 0 ..< cardValues.count {
 				let digitValue = reversedValues[digit]
-				tmp += Int(pow(Self.cardSortValueDigitMagnitudeChange, Double(digit)) * Double(digitValue))
+				tmp += Int(
+					pow(Self.cardSortValueDigitMagnitudeChange, Double(digit)) * Double(digitValue))
 			}
 			cardSortValue = tmp
 
@@ -227,7 +241,6 @@ struct Day07Part1: AdventDayPart {
 			}
 			return bid * rank
 		}
-
 
 		var debugDescription: String {
 			return "\(cards) \(bid) (\(rank), s: \(cardSortValue))"
@@ -306,17 +319,20 @@ struct Day07Part2: AdventDayPart {
 
 		static var weakest = HandType.highCard
 		static var strongest = HandType.fiveOfAKind
-		static var typesInDescendingStrength = ((weakest.rawValue)...(strongest.rawValue)).reversed().map({HandType(rawValue: $0)})
+		static var typesInDescendingStrength = ((weakest.rawValue) ... (strongest.rawValue)).reversed()
+			.map({ HandType(rawValue: $0) })
 
 		static func handType(for cardValues: [Int]) -> HandType {
-			let cardCounts: [Int: Int] = cardValues.reduce(into: [:], {result, charIndex in
-				guard let currentCount = result[charIndex] else {
-					result[charIndex] = 1
-					return
-				}
+			let cardCounts: [Int: Int] = cardValues.reduce(
+				into: [:],
+				{ result, charIndex in
+					guard let currentCount = result[charIndex] else {
+						result[charIndex] = 1
+						return
+					}
 
-				result[charIndex] = currentCount + 1
-			})
+					result[charIndex] = currentCount + 1
+				})
 
 			let jokerCount = cardCounts[Hand.jokerValue] ?? 0
 			if jokerCount == 5 || jokerCount == 4 {
@@ -342,7 +358,9 @@ struct Day07Part2: AdventDayPart {
 					default: .fullHouse
 					}
 				default:
-					fatalError("ValidationError: [2-symbols] handType cannot be determined due to an invalid number of card types \(cardValues)")
+					fatalError(
+						"ValidationError: [2-symbols] handType cannot be determined due to an invalid number of card types \(cardValues)"
+					)
 				}
 			}
 			if uniqueSymbols.count == 3 {
@@ -360,7 +378,9 @@ struct Day07Part2: AdventDayPart {
 					default: .twoPair
 					}
 				default:
-					fatalError("ValidationError: [3-symbols] handType cannot be determined due to an invalid number of card types \(cardValues)")
+					fatalError(
+						"ValidationError: [3-symbols] handType cannot be determined due to an invalid number of card types \(cardValues)"
+					)
 				}
 			}
 			if uniqueSymbols.count == 4 {
@@ -375,7 +395,9 @@ struct Day07Part2: AdventDayPart {
 				default: .highCard
 				}
 			}
-			fatalError("ValidationError: 1. handType cannot be determined due to an invalid number of card types \(cardValues)")
+			fatalError(
+				"ValidationError: 1. handType cannot be determined due to an invalid number of card types \(cardValues)"
+			)
 		}
 	}
 	final class HandSet: CustomDebugStringConvertible {
@@ -383,20 +405,23 @@ struct Day07Part2: AdventDayPart {
 		init(_ str: String) {
 			hands = parse(from: str, separator: "\n")
 		}
-		@discardableResult func updateRanks() -> [Int: [Hand]]{
-			var buckets: [Int: [Hand]] = hands.reduce(into: [:], {accum, hand in
-				let bucketIndex = hand.handType.rawValue
-				if accum[bucketIndex] == nil {
-					accum[bucketIndex] = []
-				}
-				accum[hand.handType.rawValue]!.append(hand)
-			})
+		@discardableResult func updateRanks() -> [Int: [Hand]] {
+			var buckets: [Int: [Hand]] = hands.reduce(
+				into: [:],
+				{ accum, hand in
+					let bucketIndex = hand.handType.rawValue
+					if accum[bucketIndex] == nil {
+						accum[bucketIndex] = []
+					}
+					accum[hand.handType.rawValue]!.append(hand)
+				})
 
 			// Sort every bucket, so hands are in increasing order within their bucket of the same type
 			for handTypeIndex in buckets.keys {
-				buckets[handTypeIndex]!.sort(by: {a, b in
-					return a.cardSortValue < b.cardSortValue
-				})
+				buckets[handTypeIndex]!
+					.sort(by: { a, b in
+						return a.cardSortValue < b.cardSortValue
+					})
 			}
 
 			var nextRank = 1
@@ -413,7 +438,7 @@ struct Day07Part2: AdventDayPart {
 			return hands.map(\.score).reduce(0, +)
 		}
 		var debugDescription: String {
-			let handStr = hands.map({"\($0)"}).joined(separator:"\n")
+			let handStr = hands.map({ "\($0)" }).joined(separator: "\n")
 			return "Hands:\n\(handStr)"
 		}
 	}
@@ -431,22 +456,24 @@ struct Day07Part2: AdventDayPart {
 		init(_ str: String) {
 			let bits = str.splitAndTrim(separator: " ")
 			guard bits.count == 2 else {
-				fatalError("ValidationError: Expected a list of cards followed by a number bid! '\(str)'")
+				fatalError(
+					"ValidationError: Expected a list of cards followed by a number bid! '\(str)'")
 			}
 			cards = bits[0]
-			guard cards.count == 5 && cards.allSatisfy({Self.availableCards.contains($0)}) else {
+			guard cards.count == 5 && cards.allSatisfy({ Self.availableCards.contains($0) }) else {
 				fatalError("ValidationError: Broken hand, unexpected card face value \(cards)")
 			}
-			cardValues = cards.map({Self.cardsInAscendingOrder.firstIndex(of: $0)!})
+			cardValues = cards.map({ Self.cardsInAscendingOrder.firstIndex(of: $0)! })
 
 			// Start by comparing the first card in each hand.
 			// If these cards are different, the hand with the stronger first card is considered stronger.
 			// If the first card in each hand have the same label, however, then move on to considering the second card in each hand. If they differ, the hand with the higher second card wins; otherwise, continue with the third card in each hand, then the fourth, then the fifth.
 			let reversedValues = Array(cardValues.reversed())
 			var tmp: Int = 0
-			for digit in 0..<cardValues.count {
+			for digit in 0 ..< cardValues.count {
 				let digitValue = reversedValues[digit]
-				tmp += Int(pow(Self.cardSortValueDigitMagnitudeChange, Double(digit)) * Double(digitValue))
+				tmp += Int(
+					pow(Self.cardSortValueDigitMagnitudeChange, Double(digit)) * Double(digitValue))
 			}
 			cardSortValue = tmp
 
@@ -468,7 +495,8 @@ struct Day07Part2: AdventDayPart {
 		}
 
 		var debugDescription: String {
-			return "\(cards) \(bid)\t(\(String(describing: handType).padding(toLength: 11, withPad:" ", startingAt: 0)) \("\(rank)".padding(toLength: 5, withPad:" ", startingAt: 0)) s: \(cardSortValue))"
+			return
+				"\(cards) \(bid)\t(\(String(describing: handType).padding(toLength: 11, withPad:" ", startingAt: 0)) \("\(rank)".padding(toLength: 5, withPad:" ", startingAt: 0)) s: \(cardSortValue))"
 		}
 
 		static var cardsInAscendingOrder = Array("AKQT98765432J".reversed())

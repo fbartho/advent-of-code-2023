@@ -18,4 +18,3 @@ struct DayTemplate00Part1: AdventDayPart, TestData {
 		print("You can do this!")
 	}
 }
-

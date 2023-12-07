@@ -64,7 +64,7 @@ extension StringProtocol {
 	}
 
 	public func strippingAllNonDigits() -> String {
-		return unicodeScalars.filter({CharacterSet.decimalDigits.contains($0)}).map(String.init).joined()
+		return unicodeScalars.filter({ CharacterSet.decimalDigits.contains($0) }).map(String.init).joined()
 	}
 
 	public func verifyAndDrop(prefix: String) -> String {

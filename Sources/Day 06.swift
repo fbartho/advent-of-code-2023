@@ -77,8 +77,10 @@ struct Day06Part1: AdventDayPart {
 
 		/// duration held -> distance traveled with current speed increment
 		func distance(accelerationTime: Int, raceDuration: Int) -> Int {
-			guard accelerationTime<=raceDuration else {
-				fatalError("Validation Error: accelerationTime must be <= raceDuration (\(accelerationTime), \(raceDuration))")
+			guard accelerationTime <= raceDuration else {
+				fatalError(
+					"Validation Error: accelerationTime must be <= raceDuration (\(accelerationTime), \(raceDuration))"
+				)
 			}
 			let velocity = accelerationTime * boatSpeedIncrement
 			let travelTime = raceDuration - accelerationTime
@@ -92,7 +94,7 @@ struct Day06Part1: AdventDayPart {
 		/// Distance in ms you should expect to travel
 		let expectedDistance: Int
 
-		init(holdTime: Int, boat: Boat, raceDuration: Int){
+		init(holdTime: Int, boat: Boat, raceDuration: Int) {
 			self.holdTime = holdTime
 
 			expectedDistance = boat.distance(accelerationTime: holdTime, raceDuration: raceDuration)
@@ -119,14 +121,15 @@ struct Day06Part1: AdventDayPart {
 				fatalError("ValidationError: Times must be paired with record distances")
 			}
 
-			races = zip(times, distances).map({(time, distance) in Race(duration: time, distance: distance)})
+			races = zip(times, distances)
+				.map({ (time, distance) in Race(duration: time, distance: distance) })
 		}
 		var debugDescription: String {
 			return "Time: \(races.map(\.duration))\nDistance: \(races.map(\.distance))"
 		}
 
 		func calculateWinningStrategies(for boat: Boat) -> [[RaceStrategy]] {
-			return races.map({$0.calculateWinningStrategies(for: boat)})
+			return races.map({ $0.calculateWinningStrategies(for: boat) })
 		}
 
 		struct Race {
@@ -136,15 +139,14 @@ struct Day06Part1: AdventDayPart {
 			let distance: Int
 
 			func calculateWinningStrategies(for boat: Boat) -> [RaceStrategy] {
-				return (1..<duration)
-					.map({RaceStrategy(holdTime: $0, boat: boat, raceDuration: duration)})
-					.filter({$0.expectedDistance > distance})
+				return (1 ..< duration)
+					.map({ RaceStrategy(holdTime: $0, boat: boat, raceDuration: duration) })
+					.filter({ $0.expectedDistance > distance })
 			}
 
 		}
 	}
 }
- 
 
 /*
  --- Part Two ---
@@ -193,8 +195,10 @@ struct Day06Part2: AdventDayPart {
 
 		/// duration held -> distance traveled with current speed increment
 		func distance(accelerationTime: Int, raceDuration: Int) -> Int {
-			guard accelerationTime<=raceDuration else {
-				fatalError("Validation Error: accelerationTime must be <= raceDuration (\(accelerationTime), \(raceDuration))")
+			guard accelerationTime <= raceDuration else {
+				fatalError(
+					"Validation Error: accelerationTime must be <= raceDuration (\(accelerationTime), \(raceDuration))"
+				)
 			}
 			let velocity = accelerationTime * boatSpeedIncrement
 			let travelTime = raceDuration - accelerationTime
@@ -208,7 +212,7 @@ struct Day06Part2: AdventDayPart {
 		/// Distance in ms you should expect to travel
 		let expectedDistance: Int
 
-		init(holdTime: Int, boat: Boat, raceDuration: Int){
+		init(holdTime: Int, boat: Boat, raceDuration: Int) {
 			self.holdTime = holdTime
 
 			expectedDistance = boat.distance(accelerationTime: holdTime, raceDuration: raceDuration)
@@ -229,20 +233,24 @@ struct Day06Part2: AdventDayPart {
 				fatalError("Not enough data \(lines)")
 			}
 
-			let times: [Int] = parse(from: lines[0].verifyAndDrop(prefix: "Time:").strippingAllNonDigits(), separator: " ")
-			let distances: [Int] = parse(from: lines[1].verifyAndDrop(prefix: "Distance:").strippingAllNonDigits(), separator: " ")
+			let times: [Int] = parse(
+				from: lines[0].verifyAndDrop(prefix: "Time:").strippingAllNonDigits(), separator: " ")
+			let distances: [Int] = parse(
+				from: lines[1].verifyAndDrop(prefix: "Distance:").strippingAllNonDigits(),
+				separator: " ")
 			guard times.count == distances.count else {
 				fatalError("ValidationError: Times must be paired with record distances")
 			}
 
-			races = zip(times, distances).map({(time, distance) in Race(duration: time, distance: distance)})
+			races = zip(times, distances)
+				.map({ (time, distance) in Race(duration: time, distance: distance) })
 		}
 		var debugDescription: String {
 			return "Time: \(races.map(\.duration))\nDistance: \(races.map(\.distance))"
 		}
 
 		func calculateWinningStrategyCounts(for boat: Boat) -> [Int] {
-			return races.map({$0.calculateWinningStrategyCount(for: boat)})
+			return races.map({ $0.calculateWinningStrategyCount(for: boat) })
 		}
 
 		struct Race {
@@ -253,8 +261,9 @@ struct Day06Part2: AdventDayPart {
 
 			func calculateWinningStrategyCount(for boat: Boat) -> Int {
 				var result = 0
-				for hypothesis in (1..<duration) {
-					let strat = RaceStrategy(holdTime: hypothesis, boat: boat, raceDuration: duration)
+				for hypothesis in (1 ..< duration) {
+					let strat = RaceStrategy(
+						holdTime: hypothesis, boat: boat, raceDuration: duration)
 					if strat.expectedDistance > distance {
 						result += 1
 					}
@@ -265,4 +274,3 @@ struct Day06Part2: AdventDayPart {
 		}
 	}
 }
-
