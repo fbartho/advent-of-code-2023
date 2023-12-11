@@ -53,7 +53,7 @@ extension StringProtocol {
 		return partialResult
 	}
 	public func splitAndTrim(separator: String, maxSplits: Int = Int.max, omittingEmptySubsequences: Bool = true)
-	-> [String]
+		-> [String]
 	{
 		let partialResult = split(separator: separator, maxSplits: maxSplits)
 			.map({ $0.trimmingCharacters(in: .whitespaces) })
@@ -72,6 +72,11 @@ extension StringProtocol {
 			fatalError("ValidationError: Expected Prefix '\(prefix)' was not found in '\(self)'")
 		}
 		return String(self.dropFirst(prefix.count)).trimmingCharacters(in: .whitespaces)
+	}
+}
+extension String {
+	func repeated(by count: Int) -> String {
+		return String(repeating: self, count: count)
 	}
 }
 
