@@ -156,3 +156,132 @@ struct Day09Part1: AdventDayPart {
 		}
 	}
 }
+
+/*
+ --- Part Two ---
+
+ Of course, it would be nice to have even more history included in your report. Surely it's safe to just extrapolate backwards as well, right?
+
+ For each history, repeat the process of finding differences until the sequence of differences is entirely zero. Then, rather than adding a zero to the end and filling in the next values of each previous sequence, you should instead add a zero to the beginning of your sequence of zeroes, then fill in new first values for each previous sequence.
+
+ In particular, here is what the third example history looks like when extrapolating back in time:
+
+ 5  10  13  16  21  30  45
+   5   3   3   5   9  15
+	-2   0   2   4   6
+	   2   2   2   2
+		 0   0   0
+ Adding the new values on the left side of each sequence from bottom to top eventually reveals the new left-most history value: 5.
+
+ Doing this for the remaining example data above results in previous values of -3 for the first history and 0 for the second history. Adding all three new values together produces 2.
+
+ Analyze your OASIS report again, this time extrapolating the previous value for each history. What is the sum of these extrapolated values?
+ */
+struct Day09Part2: AdventDayPart {
+	var data: String
+
+	static var day: Int = 9
+	static var part: Int = 2
+
+	func run() async throws {
+		let historyBook: [History] = parse(from: data, separator: "\n")
+		guard historyBook.count >= 1 else {
+			fatalError("Not enough data \(historyBook.count)")
+		}
+		print(historyBook.map({ "\($0)" }).joined(separator: "\n"))
+		print("---------")
+		History.printDeltaTree(tree: historyBook.first!.deltaTree)
+		print("---------")
+
+		let extrapolations = historyBook.map(\.extrapolateBackwards)
+		print(extrapolations)
+		let sum = extrapolations.reduce(0, +)
+		print("Sum: \(sum)")
+	}
+	struct History: CustomDebugStringConvertible, HasFailableInitFromString {
+		let entries: [Int]
+
+		init(_ str: String) {
+			entries = parse(from: str, separator: " ")
+		}
+
+		var deltaTree: [[Int]] {
+			return Self.calculateDeltaTree(nums: entries)
+		}
+		var extrapolateForwards: Int {
+			guard entries.count > 0 else {
+				return 0
+			}
+			var tree = deltaTree
+
+			tree[tree.indices.last!].append(0)
+
+			var idx = tree.count - 1
+			while idx > 0 {
+				tree[idx - 1].append(tree[idx].last! + tree[idx - 1].last!)
+				idx -= 1
+			}
+
+			// Self.printDeltaTree(tree: tree)
+
+			return tree.first!.last!
+		}
+
+		var extrapolateBackwards: Int {
+			guard entries.count > 0 else {
+				return 0
+			}
+			var tree = deltaTree
+
+			tree[tree.indices.last!].prepend(0)
+
+			var idx = tree.count - 1
+			while idx > 0 {
+				tree[idx - 1].prepend(tree[idx - 1].first! - tree[idx].first!)
+				idx -= 1
+			}
+
+			// Self.printDeltaTree(tree: tree)
+
+			return tree.first!.first!
+		}
+
+		var debugDescription: String {
+			return entries.map({ "\($0)" }).joined(separator: " ")
+		}
+
+		static func calculateDeltaTree(nums: [Int]) -> [[Int]] {
+			var result: [[Int]] = [nums]
+			var current: [Int] = nums
+			while !current.allSatisfy({ $0 == 0 }) {
+				current = Self.calculateDeltas(nums: current)
+				result.append(current)
+			}
+			return result
+		}
+
+		/// Calculate 1 level of deltas
+		static func calculateDeltas(nums: [Int]) -> [Int] {
+			guard nums.count >= 2 else {
+				return [0]
+			}
+			var result: [Int] = []
+			var idx = 0
+			while idx + 1 < nums.count {
+				let a = nums[idx]
+				let b = nums[idx + 1]
+				result.append(b - a)
+				idx += 1
+			}
+			return result
+		}
+
+		static func printDeltaTree(tree: [[Int]]) {
+			for rowIndex in tree.indices {
+				print(
+					"  ".repeated(by: rowIndex)
+						+ tree[rowIndex].map(String.init).joined(separator: "   "))
+			}
+		}
+	}
+}

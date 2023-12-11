@@ -79,6 +79,11 @@ extension String {
 		return String(repeating: self, count: count)
 	}
 }
+extension Array {
+	mutating func prepend(_ element: Element) {
+		self.insert(element, at: 0)
+	}
+}
 
 struct ProgressLogger {
 	let prefix: String
