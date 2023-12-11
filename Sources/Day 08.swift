@@ -61,11 +61,16 @@ struct Day08Part1: AdventDayPart {
 					return count
 				}
 
-				guard let nextLocation = switch dir {
-				case .left: leftLinks[currentLocation]
-				case .right: rightLinks[currentLocation]
-				} else {
-					fatalError("LostError: No location for \(currentLocation) after \(count) steps -- Map not fully described?")
+				guard
+					let nextLocation =
+						switch dir {
+						case .left: leftLinks[currentLocation]
+						case .right: rightLinks[currentLocation]
+						}
+				else {
+					fatalError(
+						"LostError: No location for \(currentLocation) after \(count) steps -- Map not fully described?"
+					)
 				}
 				currentLocation = nextLocation
 				count += 1
@@ -76,7 +81,9 @@ struct Day08Part1: AdventDayPart {
 		init(data: String) {
 			let chunks = data.splitAndTrim(separator: "\n", maxSplits: 1)
 			guard chunks.count == 2 else {
-				fatalError("ValidationError: Improperly described map. Expected line of directions, but got:\n \(data)")
+				fatalError(
+					"ValidationError: Improperly described map. Expected line of directions, but got:\n \(data)"
+				)
 			}
 			navigation = parse(from: chunks[0], separator: "")
 
@@ -89,10 +96,15 @@ struct Day08Part1: AdventDayPart {
 			}
 			for line in lines {
 				let entryBits = line.splitAndTrim(separator: "=")
-				guard entryBits.count == 2 else { fatalError("ValidationError: Invalid entry: \(line)") }
+				guard entryBits.count == 2 else {
+					fatalError("ValidationError: Invalid entry: \(line)")
+				}
 
-				let destinations = entryBits[1].filter({$0 != "(" && $0 != ")"}).splitAndTrim(separator: ",")
-				guard destinations.count == 2 else { fatalError("ValidationError: Invalid entry destinations: \(entryBits[1])") }
+				let destinations = entryBits[1].filter({ $0 != "(" && $0 != ")" })
+					.splitAndTrim(separator: ",")
+				guard destinations.count == 2 else {
+					fatalError("ValidationError: Invalid entry destinations: \(entryBits[1])")
+				}
 				l[entryBits[0]] = destinations[0]
 				r[entryBits[0]] = destinations[1]
 			}
@@ -160,65 +172,159 @@ struct Day08Part2: AdventDayPart {
 	func run() async throws {
 		let graph = Graph(data: data)
 		print("------")
+		print(graph.nodeCache.values.map(\.debugDescription).joined(separator: "\n"))
+		print("------")
+		print(graph.startingNodes)
+		print(graph.terminusNodes)
+		print("------")
 		let stepCount = graph.countGhostSteps()
 		print("Num steps: \(stepCount)")
 	}
 
 	struct Graph {
 		let navigation: [Direction]
-		let leftLinks: [String: String]
-		let rightLinks: [String: String]
+		var nodeCache: [String: Node] = [:]
 
-		func countSteps(from: String, to: String) -> Int {
-			guard from != to else { return 0 }
-			var navigator = LoopIterator(collection: navigation)
-			var count = 0
-			var currentLocation = from
-			while let dir = navigator.next() {
-				guard currentLocation != to else {
-					return count
-				}
-
-				guard let nextLocation = switch dir {
-				case .left: leftLinks[currentLocation]
-				case .right: rightLinks[currentLocation]
-				} else {
-					fatalError("LostError: No location for \(currentLocation) after \(count) steps -- Map not fully described?")
-				}
-				currentLocation = nextLocation
-				count += 1
-			}
-			fatalError("CodeFlowError: Expected earlier exit above.")
+		var startingNodes: [Node] {
+			return nodeCache.values.filter(\.isStart)
 		}
+		var terminusNodes: [Node] {
+			return nodeCache.values.filter(\.isTerminus)
+		}
+
+		/// Inspection of the data-set shows
+		///  - exactly 6 starting points
+		///  - exactly 6 end points
+		/// Assumptions (to be validated):
+		/// - Each ghost goes to a distinct end-point
+		/// - If a ghost leaves an endpoint, it will eventually loop back to the same node
+		/// - If a ghost returns to an endpoint, it will have the position in the L/R instruction set
 		func countGhostSteps() -> Int {
-			var ghostLocations = leftLinks.keys.filter({$0.hasSuffix("A")})
-			var navigator = LoopIterator(collection: navigation)
-			var count = 0
-			while let dir = navigator.next() {
-				let atDestination = ghostLocations.allSatisfy({$0.hasSuffix("Z")})
-				guard !atDestination else {
-					return count
-				}
-				ghostLocations = ghostLocations.compactMap({currentLocation in
-					switch dir {
-					case .left: return leftLinks[currentLocation]
-					case .right: return rightLinks[currentLocation]
-					}
-				})
-				count += 1
+			let navigator = LoopIterator(collection: navigation)
+			let ghosts = startingNodes.map({ Ghost(start: $0, navigator: navigator) })
+
+			let prefixes = ghosts.map({ $0.findLoopPrefixLength() })
+			print("Loop prefixes, \(prefixes)")
+			let loopLengths = ghosts.map({ $0.findLoopLength() })
+			print("Loop lengths, \(loopLengths)")
+
+			guard zip(prefixes, loopLengths).allSatisfy({ (prefix, length) in prefix == length }) else {
+				fatalError(
+					"Assumption Violated: the prefixes don't match the loop lengths, so the math is much much harder!"
+				)
 			}
-			fatalError("CodeFlowError: Expected earlier exit above.")
+
+			let numSteps = leastCommonMultiple(numbers: loopLengths)
+			return numSteps
+		}
+
+		class Ghost: CustomDebugStringConvertible {
+			let startNode: Node
+			var navigator: LoopIterator<[Direction]>
+			var endNode: Node? = nil
+			/// Used to validate that if we find a Node again, that we're at the same point in the navigator loop
+			var endNodeIndex: [Direction].Index? = nil
+
+			var stepsToStartLoop: Int = -1
+			var loopLength: Int = -1
+
+			init(start: Node, navigator: LoopIterator<[Direction]>) {
+				self.startNode = start
+				self.navigator = navigator
+			}
+
+			/// This mutates the navigator, so should only be called once
+			func findLoopPrefixLength() -> Int {
+				guard stepsToStartLoop == -1 else {
+					fatalError(
+						"MisuseError: Ghost for \(startNode) already knew how long its prefix was"
+					)
+				}
+				stepsToStartLoop = 0
+				var currentNode = startNode
+				while !currentNode.isTerminus {
+					guard let dir = navigator.next() else {
+						fatalError("Impossible, because infinitely looping navigator!")
+					}
+					currentNode =
+						switch dir {
+						case .left: currentNode.left
+						case .right: currentNode.right
+						}
+					stepsToStartLoop += 1
+				}
+				endNode = currentNode
+				endNodeIndex = navigator.index
+
+				return stepsToStartLoop
+			}
+			/// This mutates the navigator, so should only be called once
+			func findLoopLength() -> Int {
+				guard stepsToStartLoop != -1 else {
+					fatalError(
+						"MisuseError: Ghost for \(startNode) needs to know its prefix length so the navigator is in the right state!"
+					)
+				}
+				guard let endNode = endNode, let endNodeIndex = endNodeIndex else {
+					fatalError(
+						"MisuseError: Ghost for \(startNode) needs to know its endNode before searching for how long its loop is!"
+					)
+				}
+				guard loopLength == -1 else {
+					fatalError("MisuseError: Ghost for \(startNode) already knows its loop length")
+					// return loopLength
+				}
+
+				loopLength = 1
+
+				// Step off of our currentNode manually, once, since it's currently the endNode
+				var currentNode: Node! =
+					switch navigator.next()! {
+					case .left: endNode.left
+					case .right: endNode.right
+					}
+
+				while !currentNode.isTerminus {
+					guard let dir = navigator.next() else {
+						fatalError("Impossible, because infinitely looping navigator!")
+					}
+					currentNode =
+						switch dir {
+						case .left: currentNode.left
+						case .right: currentNode.right
+						}
+					loopLength += 1
+				}
+				guard currentNode == endNode else {
+					fatalError("Assumption Disproven: we loop through multiple end-nodes")
+				}
+				guard endNodeIndex == navigator.index else {
+					fatalError(
+						"Assumption Disproven: we loop through end-nodes [at a different place in the navigator]"
+					)
+				}
+
+				return stepsToStartLoop
+			}
+
+			var debugDescription: String {
+				var endNodeStr = "<not-found-yet>"
+				if let endNode = endNode {
+					endNodeStr = "\(endNode)"
+				}
+				return
+					"👻 \(startNode) -> \(endNodeStr) prefix: \(stepsToStartLoop), loop-length: \(loopLength)"
+			}
 		}
 
 		init(data: String) {
 			let chunks = data.splitAndTrim(separator: "\n", maxSplits: 1)
 			guard chunks.count == 2 else {
-				fatalError("ValidationError: Improperly described map. Expected line of directions, but got:\n \(data)")
+				fatalError(
+					"ValidationError: Improperly described map. Expected line of directions, but got:\n \(data)"
+				)
 			}
 			navigation = parse(from: chunks[0], separator: "")
-
-			var l: [String: String] = [:]
-			var r: [String: String] = [:]
 
 			let lines = chunks[1].splitAndTrim(separator: "\n")
 			guard lines.count >= 1 else {
@@ -226,15 +332,99 @@ struct Day08Part2: AdventDayPart {
 			}
 			for line in lines {
 				let entryBits = line.splitAndTrim(separator: "=")
-				guard entryBits.count == 2 else { fatalError("ValidationError: Invalid entry: \(line)") }
+				guard entryBits.count == 2 else {
+					fatalError("ValidationError: Invalid entry: \(line)")
+				}
 
-				let destinations = entryBits[1].filter({$0 != "(" && $0 != ")"}).splitAndTrim(separator: ",")
-				guard destinations.count == 2 else { fatalError("ValidationError: Invalid entry destinations: \(entryBits[1])") }
-				l[entryBits[0]] = destinations[0]
-				r[entryBits[0]] = destinations[1]
+				let from = entryBits[0]
+
+				let destinations = entryBits[1].filter({ $0 != "(" && $0 != ")" })
+					.splitAndTrim(separator: ",")
+				guard destinations.count == 2 else {
+					fatalError("ValidationError: Invalid entry destinations: \(entryBits[1])")
+				}
+
+				let left = destinations[0]
+				let right = destinations[1]
+
+				_ = Node.node(cache: &nodeCache, label: from, children: (left: left, right: right))
 			}
-			leftLinks = l
-			rightLinks = r
+		}
+
+		class Node: CustomDebugStringConvertible, Equatable {
+			let label: String
+
+			/// Ghosts start at nodes suffixed with 'A'
+			let isStart: Bool
+			/// Ghosts end at nodes suffixed with 'Z'
+			let isTerminus: Bool
+
+			var left: Node! = nil
+			var right: Node! = nil
+
+			var isFullyConstructed: Bool {
+				return left != nil && right != nil
+			}
+
+			var debugDescription: String {
+				var extra: [String] = []
+				if isStart {
+					extra.append("Start")
+				}
+				if isTerminus {
+					extra.append("End")
+				}
+				var extraStr = ""
+				if !extra.isEmpty {
+					extraStr = " [\(extra.joined(separator: ", "))]"
+				}
+				var leftStr = "nil"
+				if let left = left {
+					leftStr = "\(left.label)"
+				}
+				var rightStr = "nil"
+				if let right = right {
+					rightStr = "\(right.label)"
+				}
+				return "\(label) = (\(leftStr), \(rightStr))\(extraStr)"
+			}
+
+			init(_ label: String, left: Node! = nil, right: Node! = nil) {
+				self.label = label
+				self.left = left
+				self.right = right
+				isStart = label.hasSuffix("A")
+				isTerminus = label.hasSuffix("Z")
+			}
+
+			static func node(
+				cache: inout [String: Node], label: String,
+				children: (left: String, right: String)? = nil
+			) -> Node {
+				var result: Node
+				if let cachedNode = cache[label] {
+					result = cachedNode
+				} else {
+					result = Node(label)
+					cache[label] = result
+				}
+				if let children = children {
+					guard !result.isFullyConstructed else {
+						fatalError(
+							"Validation Error: Node \(label) was already fully constructed but was provided new children"
+						)
+					}
+					// Assign the children if there was already a node for this
+					result.left = node(cache: &cache, label: children.left)
+					result.right = node(cache: &cache, label: children.right)
+				}
+				return result
+			}
+
+			static func == (lhs: Node, rhs: Node) -> Bool {
+				// return lhs.label == rhs.label
+				return lhs === rhs  // Use object identity for speed and simplicity
+			}
 		}
 
 		enum Direction: Character, HasFailableInitFromString {

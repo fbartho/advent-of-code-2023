@@ -53,7 +53,7 @@ extension StringProtocol {
 		return partialResult
 	}
 	public func splitAndTrim(separator: String, maxSplits: Int = Int.max, omittingEmptySubsequences: Bool = true)
-		-> [String]
+	-> [String]
 	{
 		let partialResult = split(separator: separator, maxSplits: maxSplits)
 			.map({ $0.trimmingCharacters(in: .whitespaces) })
@@ -127,7 +127,7 @@ extension ClosedRange where Bound: Strideable, Bound.Stride: SignedInteger {
 public struct LoopIterator<Base: Collection>: IteratorProtocol {
 
 	private let collection: Base
-	private var index: Base.Index
+	public private(set) var index: Base.Index
 
 	public init(collection: Base) {
 		self.collection = collection
@@ -146,4 +146,23 @@ public struct LoopIterator<Base: Collection>: IteratorProtocol {
 		}
 		return result
 	}
+}
+
+func leastCommonMultiple<Bound>(numbers nums: [Bound]) -> Bound
+where Bound: Comparable, Bound: ExpressibleByIntegerLiteral, Bound: FixedWidthInteger {
+	return nums.reduce(1, { accum, b in leastCommonMultiple(a: accum, b: b) })
+}
+private func greatestCommonDivisor<Bound>(a: Bound, b: Bound) -> Bound
+where Bound: Comparable, Bound: ExpressibleByIntegerLiteral, Bound: FixedWidthInteger {  // euclidean algorithm
+	if b == 0 {
+		return a
+	} else {
+		return greatestCommonDivisor(a: b, b: a % b)
+	}
+}
+
+private func leastCommonMultiple<Bound>(a: Bound, b: Bound) -> Bound
+where Bound: Comparable, Bound: ExpressibleByIntegerLiteral, Bound: FixedWidthInteger {
+	let gcd = greatestCommonDivisor(a: a, b: b)
+	return (a * b) / gcd
 }
