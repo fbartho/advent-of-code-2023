@@ -134,7 +134,7 @@ extension ClosedRange where Bound: Strideable, Bound.Stride: SignedInteger {
 
 /// Iterator that wraps around the end if its collection
 /// from: https://stackoverflow.com/a/38413254
-public struct LoopIterator<Base: Collection>: IteratorProtocol {
+public struct LoopIterator<Base: Collection>: Sequence, IteratorProtocol {
 
 	private let collection: Base
 	public private(set) var index: Base.Index
@@ -157,6 +157,52 @@ public struct LoopIterator<Base: Collection>: IteratorProtocol {
 		return result
 	}
 }
+public struct PairingsIterator<Base: Collection>: Sequence, IteratorProtocol {
+
+	private let collection: Base
+
+	private var fromIndex: Base.Index
+	private var toIndex: Base.Index
+
+	public private(set) var terminated: Bool = false
+	mutating func reset() {
+		fromIndex = collection.startIndex
+		toIndex = collection.startIndex
+		collection.formIndex(after: &toIndex)
+		terminated = (collection.isEmpty || toIndex == collection.endIndex)
+	}
+
+	public init(collection: Base) {
+		self.collection = collection
+		fromIndex = collection.startIndex
+		toIndex = collection.startIndex
+		reset()
+	}
+
+	public mutating func next() -> (Base.Iterator.Element, Base.Iterator.Element)? {
+		guard !collection.isEmpty && !terminated else {
+			return nil
+		}
+
+		let from = collection[fromIndex]
+		let to = collection[toIndex]
+
+		collection.formIndex(after: &toIndex)
+		if toIndex == collection.endIndex {
+			collection.formIndex(after: &fromIndex)
+			if fromIndex == collection.endIndex {
+				terminated = true
+			} else {
+				toIndex = fromIndex
+				collection.formIndex(after: &toIndex)
+				if toIndex == collection.endIndex {
+					terminated = true
+				}
+			}
+		}
+		return (from, to)
+	}
+}
 
 func leastCommonMultiple<Bound>(numbers nums: [Bound]) -> Bound
 where Bound: Comparable, Bound: ExpressibleByIntegerLiteral, Bound: FixedWidthInteger {
@@ -175,4 +221,99 @@ private func leastCommonMultiple<Bound>(a: Bound, b: Bound) -> Bound
 where Bound: Comparable, Bound: ExpressibleByIntegerLiteral, Bound: FixedWidthInteger {
 	let gcd = greatestCommonDivisor(a: a, b: b)
 	return (a * b) / gcd
+}
+
+typealias Coord2<Bound> = (x: Bound, y: Bound) where Bound: Comparable, Bound: SignedNumeric
+struct Path2<Bound> where Bound: Comparable, Bound: SignedNumeric {
+	var from: Coord2<Bound>
+	var to: Coord2<Bound>
+
+	init(from: Coord2<Bound>, to: Coord2<Bound>) {
+		self.from = from
+		self.to = to
+	}
+
+	init(_ tuple: (Coord2<Bound>, Coord2<Bound>)) {
+		from = tuple.0
+		to = tuple.1
+	}
+}
+
+struct Frame<Bound>: CustomDebugStringConvertible where Bound: Comparable, Bound: SignedNumeric {
+	var origin: Origin
+	var size: Size
+
+	init(width: Bound, height: Bound) {
+		origin = Origin()
+		size = Size(width: width, height: height)
+	}
+	init() {
+		origin = Origin()
+		size = Size()
+	}
+
+	func contains(coord: Coord2<Bound>) -> Bool {
+		return origin.x <= coord.x
+			&& origin.y <= coord.y
+			&& size.contains(coord: coord)
+
+	}
+	mutating func normalize() {
+		let oldOrigin = origin
+		origin = Origin()
+		size.width -= oldOrigin.x
+		size.height -= oldOrigin.y
+	}
+	func normalized() -> Frame<Bound> {
+		var result = self
+		result.normalize()
+		return result
+	}
+	var xInclusiveRange: ClosedRange<Bound> {
+		return origin.x ... size.width
+	}
+	var yInclusiveRange: ClosedRange<Bound> {
+		return origin.y ... size.height
+	}
+	var xExclusiveRange: Range<Bound> {
+		return origin.x ..< size.width
+	}
+	var yExclusiveRange: Range<Bound> {
+		return origin.y ..< size.height
+	}
+	var debugDescription: String {
+		return "[o: \(origin), s: \(size)]"
+	}
+
+	struct Origin: CustomDebugStringConvertible {
+
+		var x: Bound
+		var y: Bound
+
+		init(x: Bound = 0, y: Bound = 0) {
+			self.x = x
+			self.y = y
+		}
+
+		var debugDescription: String {
+			return "(\(x), \(y))"
+		}
+	}
+	struct Size: CustomDebugStringConvertible {
+		var width: Bound
+		var height: Bound
+
+		init(width: Bound = 0, height: Bound = 0) {
+			self.width = width
+			self.height = height
+		}
+
+		fileprivate func contains(coord: Coord2<Bound>) -> Bool {
+			return width >= coord.x && height >= coord.y
+		}
+
+		var debugDescription: String {
+			return "(\(width), \(height))"
+		}
+	}
 }
