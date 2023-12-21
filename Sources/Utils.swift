@@ -82,6 +82,20 @@ extension Array {
 	mutating func prepend(_ element: Element) {
 		self.insert(element, at: 0)
 	}
+	func prepending(_ element: Element) -> Self {
+		var result = self
+		result.insert(element, at: 0)
+		return result
+	}
+	func swapping(_ element: Element, at index: Self.Index) -> Self {
+		var result = self
+		if !(index == 0 && isEmpty) {
+			// Allow swapping at first slot if we're empty
+			result.remove(at: index)
+		}
+		result.insert(element, at: index)
+		return result
+	}
 }
 
 struct ProgressLogger {

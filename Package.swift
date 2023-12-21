@@ -29,9 +29,9 @@ let package = Package(
 	    	name: "AdventOfCode",
 	    	dependencies: dependencies,
 	    	resources: [.copy("inputs")]),
-    	// .testTarget(
-    	//	 name: "AdventOfCodeTests",
-    	//	 dependencies: ["AdventOfCode"] + dependencies
-    	// )
+    	.testTarget(
+    		 name: "AdventOfCodeTests",
+    		 dependencies: ["AdventOfCode"] + dependencies
+    	)
 	]
 )
