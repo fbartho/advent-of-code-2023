@@ -80,9 +80,10 @@ struct Day12Part1: AdventDayPart, TestData {
 
 	func run() async throws {
 		let records: [SpringConditionRecord] = parse(from: data, separator: "\n")
-//		let arrangements = records.map(\.possibleArrangements)
+		//		let arrangements = records.map(\.possibleArrangements)
 		let tmp = [records.first!]
-		let arrangements = tmp.map(\.possibleArrangements)
+		var cache: [SpringConditionRecord.BucketAssignmentCacheKey: Int] = [:]
+		let arrangements = tmp.map({$0.possibleArrangements(cache: &cache)})
 
 		print(arrangements.map(String.init(describing:)).joined(separator: "\n"))
 		print("---------")
@@ -109,7 +110,9 @@ struct Day12Part1: AdventDayPart, TestData {
 		}
 		var possibleArrangements: Int {
 			var cache: [BucketAssignmentCacheKey: Int] = [:]
-
+			return possibleArrangements(cache: &cache)
+		}
+		func possibleArrangements(cache: inout [BucketAssignmentCacheKey: Int]) -> Int {
 			var canStart = false
 			let buckets: [[SpringStatus]] = initialState.trimmingPrefix(while: {$0 == .working}).reduce(into: [[]], {stateGroups, entry in
 				switch entry {
@@ -123,12 +126,22 @@ struct Day12Part1: AdventDayPart, TestData {
 					}
 				}
 			}).filter({$0.count > 0})
-			let result = Self.countArrangements(cache: &cache, buckets: buckets, brokenRunLengths: brokenRunLengths)
+			let result = Self.countArrangements(cache: &cache,
+												buckets: buckets,
+												brokenRunLengths: brokenRunLengths,
+												brokenRunHasStarted: false
+			)
 			return result
 		}
 
-		static func countArrangements(cache: inout [BucketAssignmentCacheKey: Int], buckets: [[SpringStatus]], brokenRunLengths:[Int]) -> Int {
-			let cacheKey = BucketAssignmentCacheKey(buckets: buckets, brokenRunLengths: brokenRunLengths)
+		static func countArrangements(cache: inout [BucketAssignmentCacheKey: Int],
+									  buckets: [[SpringStatus]],
+									  brokenRunLengths: [Int],
+									  brokenRunHasStarted: Bool) -> Int {
+
+			let cacheKey = BucketAssignmentCacheKey(buckets: buckets,
+													brokenRunLengths: brokenRunLengths,
+													brokenRunStarted: brokenRunHasStarted)
 			if let cached = cache[cacheKey] {
 				print("cache: \(cacheKey)")
 				return cached
@@ -163,14 +176,14 @@ struct Day12Part1: AdventDayPart, TestData {
 			let desiredRunLength = brokenRunLengths.first!
 			let numExpectedBuckets = brokenRunLengths.count
 
-//			let minNeededSpace = buckets.map(\.count).reduce(0, +) + buckets.count - 1
-//			let checksumExpectedSpace = brokenRunLengths.reduce(0, +) + numExpectedBuckets - 1
-//			if minNeededSpace > checksumExpectedMinimumSpace {
-//				// not enough space remains
-//				result = 0
-//				cache[cacheKey] = result
-//				return result
-//			}
+			//			let minNeededSpace = buckets.map(\.count).reduce(0, +) + buckets.count - 1
+			//			let checksumExpectedSpace = brokenRunLengths.reduce(0, +) + numExpectedBuckets - 1
+			//			if minNeededSpace > checksumExpectedMinimumSpace {
+			//				// not enough space remains
+			//				result = 0
+			//				cache[cacheKey] = result
+			//				return result
+			//			}
 
 			let allBroken = !currentRun.isEmpty && currentRun.allSatisfy({$0 == .broken})
 			if allBroken {
@@ -189,7 +202,8 @@ struct Day12Part1: AdventDayPart, TestData {
 					} else {
 						result += countArrangements(cache: &cache,
 													buckets: newBuckets,
-													brokenRunLengths: newBrokenRuns)
+													brokenRunLengths: newBrokenRuns,
+													brokenRunHasStarted: false)
 						cache[cacheKey] = result
 						return result
 					}
@@ -198,6 +212,12 @@ struct Day12Part1: AdventDayPart, TestData {
 
 			switch currentRun.first! {
 			case .working:
+				if brokenRunHasStarted && desiredRunLength != 0 {
+					// Uh oh, expected more broken ones
+					result = 0
+					cache[cacheKey] = result
+					return result
+				}
 				// Skip over working gears by treating them as a separator before this bucket
 				let newRun = Array(currentRun.dropFirst())
 				if newRun.isEmpty {
@@ -207,7 +227,7 @@ struct Day12Part1: AdventDayPart, TestData {
 							// Nothing left to process! valid arrangement
 							result += 1
 						} else {
-							// Uh oh, expected some broken ones
+							// Uh oh, expected more broken ones
 							result = 0
 							cache[cacheKey] = result
 							return result
@@ -215,12 +235,14 @@ struct Day12Part1: AdventDayPart, TestData {
 					} else {
 						result += countArrangements(cache: &cache,
 													buckets: newBuckets,
-													brokenRunLengths: brokenRunLengths)
+													brokenRunLengths: brokenRunLengths,
+													brokenRunHasStarted: brokenRunHasStarted)
 					}
 				} else {
 					result += countArrangements(cache: &cache,
 												buckets: buckets.swapping(newRun, at: 0),
-												brokenRunLengths: brokenRunLengths)
+												brokenRunLengths: brokenRunLengths,
+												brokenRunHasStarted: brokenRunHasStarted)
 				}
 			case .broken:
 				let newRun = Array(currentRun.dropFirst())
@@ -254,13 +276,15 @@ struct Day12Part1: AdventDayPart, TestData {
 						let newBroken = Array(brokenRunLengths.dropFirst())
 						result += countArrangements(cache: &cache,
 													buckets: newBuckets,
-													brokenRunLengths: newBroken)
+													brokenRunLengths: newBroken,
+													brokenRunHasStarted: false)
 
 					} else {
 						let newBroken = brokenRunLengths.swapping(newRunLength, at: 0)
 						result += countArrangements(cache: &cache,
 													buckets: newBuckets,
-													brokenRunLengths: newBroken)
+													brokenRunLengths: newBroken,
+													brokenRunHasStarted: true)
 					}
 				}
 
@@ -269,12 +293,14 @@ struct Day12Part1: AdventDayPart, TestData {
 				let runWithBroken = currentRun.swapping(.broken, at: 0)
 				result += countArrangements(cache: &cache,
 											buckets: buckets.swapping(runWithBroken, at: 0),
-											brokenRunLengths: brokenRunLengths)
+											brokenRunLengths: brokenRunLengths,
+											brokenRunHasStarted: brokenRunHasStarted)
 				// Case 2: Place a working gear
 				let runWithWorking = currentRun.swapping(.working, at: 0)
 				result += countArrangements(cache: &cache,
 											buckets: buckets.swapping(runWithWorking, at: 0),
-											brokenRunLengths: brokenRunLengths)
+											brokenRunLengths: brokenRunLengths, 
+											brokenRunHasStarted: brokenRunHasStarted)
 			}
 
 
@@ -402,10 +428,15 @@ struct Day12Part1: AdventDayPart, TestData {
 		struct BucketAssignmentCacheKey: Hashable, CustomDebugStringConvertible {
 			let buckets: [[SpringStatus]]
 			let brokenRunLengths: [Int]
+			let brokenRunStarted: Bool
 
 			var debugDescription: String {
 				let rStr = String(describing:buckets).padding(toLength: 50, withPad: " ", startingAt: 0)
-				return "\(rStr) - \(brokenRunLengths)"
+				let startedStr: String = switch brokenRunStarted {
+				case true: " [+]"
+				case false: ""
+				}
+				return "\(rStr) - \(brokenRunLengths)\(startedStr)"
 			}
 		}
 	}

@@ -16,7 +16,7 @@ final class Day12Tests: XCTestCase {
 		XCTAssertEqual(1, Record(".#.# 1,1").possibleArrangements)
 	}
 	func testBasic2() {
-		XCTAssertEqual(4, Record("? 1").possibleArrangements)
+		XCTAssertEqual(1, Record("? 1").possibleArrangements)
 		XCTAssertEqual(1, Record("#? 1").possibleArrangements)
 		XCTAssertEqual(1, Record("#?# 3").possibleArrangements)
 		XCTAssertEqual(1, Record("#?# 1,1").possibleArrangements)
@@ -31,9 +31,9 @@ final class Day12Tests: XCTestCase {
 		XCTAssertEqual(1, Record("??? 3").possibleArrangements)
 	}
 	func test3() {
-		//		XCTAssertEqual(1, Record("..? 1").possibleArrangements)
-		//		XCTAssertEqual(2, Record(".?? 1").possibleArrangements)
-		//		XCTAssertEqual(1, Record(".?? 2").possibleArrangements)
+		XCTAssertEqual(1, Record("..? 1").possibleArrangements)
+		XCTAssertEqual(2, Record(".?? 1").possibleArrangements)
+		XCTAssertEqual(1, Record(".?? 2").possibleArrangements)
 		XCTAssertEqual(1, Record("#?? 2").possibleArrangements)
 		XCTAssertEqual(2, Record("??? 2").possibleArrangements)
 	}
