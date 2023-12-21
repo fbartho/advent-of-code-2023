@@ -20,7 +20,6 @@ func parse<StringType, ValueType>(from str: StringType, separator: StringType.El
 where StringType: StringProtocol, ValueType: HasInitFromString {
 	return str.splitAndTrim(separator: separator).map(ValueType.init)
 }
-
 protocol HasFailableInitFromString {
 	init?(_ str: String)
 }
@@ -286,7 +285,6 @@ struct Frame<Bound>: CustomDebugStringConvertible where Bound: Comparable, Bound
 	}
 
 	struct Origin: CustomDebugStringConvertible {
-
 		var x: Bound
 		var y: Bound
 
