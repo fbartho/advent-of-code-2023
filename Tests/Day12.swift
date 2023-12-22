@@ -74,8 +74,7 @@ final class Day12Tests: XCTestCase {
 				], brokenRunLengths: [3, 1, 6]
 			)
 			.isValid(before: 4))
-	}
-	func testAssignmentCacheKey2() {
+
 		XCTAssertEqual(
 			String(
 				describing: CacheKey(
@@ -85,10 +84,26 @@ final class Day12Tests: XCTestCase {
 				.simplified()),
 			String(describing: CacheKey(assignments: [.unknown], brokenRunLengths: [])))
 	}
+	func testAssignmentCacheKey2() {
+		XCTAssertEqual(
+			String(
+				describing: CacheKey(
+					// ##?##?.???      - 5,1
+					assignments: [
+						.broken, .broken, .unknown, .broken, .broken, .unknown, .working,
+						.unknown, .unknown, .unknown,
+					],
+					brokenRunLengths: [5, 1]
+				)
+				.injecting(.broken, at: 2)),
+			String(
+				describing: CacheKey(
+					assignments: [.unknown, .unknown, .unknown], brokenRunLengths: [1])))
+	}
 	func testSpringConditionRecordParse() {
 		let record = Day12Part1.SpringConditionRecord("# 12,2")
-		let expected = Day12Part1.SpringConditionRecord([.broken],[12,2])
-		XCTAssertEqual(String(describing:record), String(describing:expected))
+		let expected = Day12Part1.SpringConditionRecord([.broken], [12, 2])
+		XCTAssertEqual(String(describing: record), String(describing: expected))
 	}
 	func testBasic1() {
 		XCTAssertEqual(0, Record("# 0").possibleArrangements)
@@ -147,14 +162,17 @@ final class Day12Tests: XCTestCase {
 	}
 	func testButVerify() {
 		let puzzleLines = Day12Part1.loadData().splitAndTrim(separator: "\n")
-		let verifiedLines = Day12Part1.loadData(testDataSuffix: ".verify").splitAndTrim(separator: "\n").dropLast().map({Int($0)!})
+		let verifiedLines = Day12Part1.loadData(testDataSuffix: ".verify").splitAndTrim(separator: "\n")
+			.dropLast().map({ Int($0)! })
 
 		var newTestCases: [String] = []
 		for (puzzle, solution) in zip(puzzleLines, verifiedLines) {
 			let calculated = Record(puzzle).possibleArrangements
-			XCTAssertEqual(calculated, solution, "\(puzzle) should have been \(solution) but was \(calculated)")
+			XCTAssertEqual(
+				calculated, solution, "\(puzzle) should have been \(solution) but was \(calculated)")
 			if calculated != solution {
-				newTestCases.append("XCTAssertEqual(\(solution), Record(\"\(puzzle)\").possibleArrangements)")
+				newTestCases.append(
+					"XCTAssertEqual(\(solution), Record(\"\(puzzle)\").possibleArrangements)")
 			}
 		}
 		print(newTestCases.joined(separator: "\n"))

@@ -255,7 +255,7 @@ struct Day12Part1: AdventDayPart {
 							tmp = Array(tmp.dropFirst())
 						} else {
 							let dropCount: Int
-							if bucketSubset.count + 1 < firstBucket.count {
+							if bucketSubset.count + 1 <= firstBucket.count {
 								// Drop the next assignment too, because it *must* be a '.working' to be valid,
 								// so even if it's currently unknown, we can skip checking invalid paths!
 								dropCount = expectedBucketLength + 1
