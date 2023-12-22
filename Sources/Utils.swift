@@ -7,6 +7,12 @@
 
 import Foundation
 
+let ENABLE_INFO_LOG = false
+func info(_ items: @autoclosure () -> Any, separator: String = " ", terminator: String = "\n") {
+	guard ENABLE_INFO_LOG else { return }
+	print(items(), separator: separator, terminator: terminator)
+}
+
 protocol HasInitFromString {
 	init(_ str: String)
 }
@@ -96,6 +102,36 @@ extension Array {
 		result.insert(element, at: index)
 		return result
 	}
+	func replacingSubrange<C>(_ subrange: Range<Int>, with newElements: C) -> Self
+	where Element == C.Element, C: Collection {
+		var result = self
+		result.replaceSubrange(subrange, with: newElements)
+		return result
+	}
+}
+extension Array where Element: Equatable {
+	func countPrefix(of element: Element) -> Int {
+		var count = 0
+		for el in self {
+			if el == element {
+				count += 1
+			} else {
+				return count
+			}
+		}
+		return count
+	}
+	func countSuffix(of element: Element) -> Int {
+		var count = 0
+		for el in reversed() {
+			if el == element {
+				count += 1
+			} else {
+				return count
+			}
+		}
+		return count
+	}
 }
 
 struct ProgressLogger {
@@ -170,6 +206,7 @@ public struct LoopIterator<Base: Collection>: Sequence, IteratorProtocol {
 		return result
 	}
 }
+/// Look at swift-collections library for alternatives
 public struct PairingsIterator<Base: Collection>: Sequence, IteratorProtocol {
 
 	private let collection: Base

@@ -72,19 +72,22 @@ import Foundation
 
  For each row, count all of the different arrangements of operational and broken springs that meet the given criteria. What is the sum of those counts?
  */
-struct Day12Part1: AdventDayPart, TestData {
+struct Day12Part1: AdventDayPart {
 	var data: String
 
 	static var day: Int = 12
 	static var part: Int = 1
 
 	func run() async throws {
-		let records: [SpringConditionRecord] = parse(from: data, separator: "\n")
-		//		let arrangements = records.map(\.possibleArrangements)
-		let tmp = [records.first!]
-		var cache: [SpringConditionRecord.BucketAssignmentCacheKey: Int] = [:]
-		let arrangements = tmp.map({$0.possibleArrangements(cache: &cache)})
+		var cache: [SpringConditionRecord.AssignmentCacheKey: Int] = [:]
 
+		let records: [SpringConditionRecord] = parse(from: data, separator: "\n")
+		let arrangements = records.map({ $0.possibleArrangements(cache: &cache) })
+
+		//		let tmp = [records.first!]
+		//		let arrangements = tmp.map({$0.possibleArrangements(cache: &cache)})
+
+		print("---------")
 		print(arrangements.map(String.init(describing:)).joined(separator: "\n"))
 		print("---------")
 		let sum = arrangements.reduce(0, +)
@@ -109,272 +112,80 @@ struct Day12Part1: AdventDayPart, TestData {
 			self.brokenRunLengths = brokenRunLengths
 		}
 		var possibleArrangements: Int {
-			var cache: [BucketAssignmentCacheKey: Int] = [:]
+			var cache = Self.emptyCache
 			return possibleArrangements(cache: &cache)
 		}
-		func possibleArrangements(cache: inout [BucketAssignmentCacheKey: Int]) -> Int {
-			var canStart = false
-			let buckets: [[SpringStatus]] = initialState.trimmingPrefix(while: {$0 == .working}).reduce(into: [[]], {stateGroups, entry in
-				switch entry {
-				case .unknown, .broken:
-					stateGroups[stateGroups.count-1].append(entry)
-					canStart = true
-				case .working:
-					if canStart {
-						stateGroups.append([])
-						canStart = false
-					}
-				}
-			}).filter({$0.count > 0})
-			let result = Self.countArrangements(cache: &cache,
-												buckets: buckets,
-												brokenRunLengths: brokenRunLengths,
-												brokenRunHasStarted: false
-			)
+		func possibleArrangements(cache: inout [AssignmentCacheKey: Int]) -> Int {
+			let state = AssignmentCacheKey(assignments: initialState, brokenRunLengths: brokenRunLengths)
+			let simplifiedState = state.simplified()
+			let result = Self.countArrangements(cache: &cache, cacheKey: simplifiedState)
 			return result
 		}
 
-		static func countArrangements(cache: inout [BucketAssignmentCacheKey: Int],
-									  buckets: [[SpringStatus]],
-									  brokenRunLengths: [Int],
-									  brokenRunHasStarted: Bool) -> Int {
-
-			let cacheKey = BucketAssignmentCacheKey(buckets: buckets,
-													brokenRunLengths: brokenRunLengths,
-													brokenRunStarted: brokenRunHasStarted)
+		static func countArrangements(
+			cache: inout [AssignmentCacheKey: Int],
+			cacheKey: AssignmentCacheKey
+		) -> Int {
 			if let cached = cache[cacheKey] {
-				print("cache: \(cacheKey)")
+				info("cache: \(cacheKey)")
 				return cached
 			}
-			print("calc:  \(cacheKey)")
+			info("calc:  \(cacheKey)")
 
-			var result: Int = 0
-
-			guard !buckets.isEmpty else {
-				if brokenRunLengths.isEmpty {
-					result += 1
-				} else {
-					result = 0
-				}
+			guard !cacheKey.isFullyValidated else {
+				let result: Int = 1
 				cache[cacheKey] = result
+				info("Result \(result) for \(cacheKey)")
 				return result
 			}
-			guard !brokenRunLengths.isEmpty else {
-				if buckets.contains(where: {$0.contains(.broken)}) {
+			guard cacheKey.hasEnoughPotentialSlots() else {
+				let result: Int = 0
+				cache[cacheKey] = result
+				info("Result \(result) for \(cacheKey)")
+				return result
+			}
+
+			guard let nextUnknownIndex = cacheKey.assignments.nextUnknownIndex() else {
+				let result: Int
+				if cacheKey.assignments.contains(.broken)
+					&& (cacheKey.brokenRunLengths.isEmpty || cacheKey.brokenRunLengths.contains(0))
+				{
 					// If there's a broken predicted, but we processed all the broken run lengths
 					// then this is not a valid prediction.
 					result = 0
 				} else {
-					result += 1
+					result = 1
 				}
 				cache[cacheKey] = result
+				info("Result \(result) for \(cacheKey)")
+				return result
+			}
+			guard cacheKey.isValid(before: nextUnknownIndex) else {
+				let result = 0
+				cache[cacheKey] = result
+				info("Result \(result) for \(cacheKey)")
 				return result
 			}
 
+			// At this point, the index is definitely pointing to a `.unknown`
 
-			let currentRun = buckets.first!
-			let desiredRunLength = brokenRunLengths.first!
-			let numExpectedBuckets = brokenRunLengths.count
+			var result: Int = 0
+			// Case 1: Place a broken gear
+			let brokenSuggestion = cacheKey.injecting(.broken, at: nextUnknownIndex)
 
-			//			let minNeededSpace = buckets.map(\.count).reduce(0, +) + buckets.count - 1
-			//			let checksumExpectedSpace = brokenRunLengths.reduce(0, +) + numExpectedBuckets - 1
-			//			if minNeededSpace > checksumExpectedMinimumSpace {
-			//				// not enough space remains
-			//				result = 0
-			//				cache[cacheKey] = result
-			//				return result
-			//			}
+			result += countArrangements(
+				cache: &cache,
+				cacheKey: brokenSuggestion)
 
-			let allBroken = !currentRun.isEmpty && currentRun.allSatisfy({$0 == .broken})
-			if allBroken {
-				if currentRun.count != desiredRunLength {
-					// Invalid number of broken items
-					result = 0
-					cache[cacheKey] = result
-					return result
-				} else {
-					let newBuckets = Array(buckets.dropFirst())
-					let newBrokenRuns = Array(brokenRunLengths.dropFirst())
-					if newBuckets.isEmpty && newBrokenRuns.isEmpty {
-						result = 1
-						cache[cacheKey] = result
-						return result
-					} else {
-						result += countArrangements(cache: &cache,
-													buckets: newBuckets,
-													brokenRunLengths: newBrokenRuns,
-													brokenRunHasStarted: false)
-						cache[cacheKey] = result
-						return result
-					}
-				}
-			}
+			// Case 2: Place a working gear
+			let workingSuggestion = cacheKey.injecting(.working, at: nextUnknownIndex)
 
-			switch currentRun.first! {
-			case .working:
-				if brokenRunHasStarted && desiredRunLength != 0 {
-					// Uh oh, expected more broken ones
-					result = 0
-					cache[cacheKey] = result
-					return result
-				}
-				// Skip over working gears by treating them as a separator before this bucket
-				let newRun = Array(currentRun.dropFirst())
-				if newRun.isEmpty {
-					let newBuckets = Array(buckets.dropFirst())
-					if newBuckets.isEmpty {
-						if brokenRunLengths.isEmpty {
-							// Nothing left to process! valid arrangement
-							result += 1
-						} else {
-							// Uh oh, expected more broken ones
-							result = 0
-							cache[cacheKey] = result
-							return result
-						}
-					} else {
-						result += countArrangements(cache: &cache,
-													buckets: newBuckets,
-													brokenRunLengths: brokenRunLengths,
-													brokenRunHasStarted: brokenRunHasStarted)
-					}
-				} else {
-					result += countArrangements(cache: &cache,
-												buckets: buckets.swapping(newRun, at: 0),
-												brokenRunLengths: brokenRunLengths,
-												brokenRunHasStarted: brokenRunHasStarted)
-				}
-			case .broken:
-				let newRun = Array(currentRun.dropFirst())
-				// subtract 1 from our broken run length, and slice forwards
-				let newRunLength = desiredRunLength - 1
-				if newRun.isEmpty {
-					let newBuckets = Array(buckets.dropFirst())
-					if newRunLength == 0 {
-						// Drop both
-						let newBroken = Array(brokenRunLengths.dropFirst())
-						if newBroken.isEmpty {
-							if newBuckets.isEmpty {
-								// Nothing more to process! Valid arrangement
-								result += 1
-							} else {
-								// Invalid arrangement
-								result = 0
-								cache[cacheKey] = result
-								return result
-							}
-						}
-					} else {
-						// Invalid arrangement, newRunLength == 0, but newRun is not empty
-						result = 0
-						cache[cacheKey] = result
-						return result
-					}
-				} else {
-					let newBuckets = buckets.swapping(newRun, at: 0)
-					if newRunLength == 0 {
-						let newBroken = Array(brokenRunLengths.dropFirst())
-						result += countArrangements(cache: &cache,
-													buckets: newBuckets,
-													brokenRunLengths: newBroken,
-													brokenRunHasStarted: false)
-
-					} else {
-						let newBroken = brokenRunLengths.swapping(newRunLength, at: 0)
-						result += countArrangements(cache: &cache,
-													buckets: newBuckets,
-													brokenRunLengths: newBroken,
-													brokenRunHasStarted: true)
-					}
-				}
-
-			case .unknown:
-				// Case 1: Place a broken gear
-				let runWithBroken = currentRun.swapping(.broken, at: 0)
-				result += countArrangements(cache: &cache,
-											buckets: buckets.swapping(runWithBroken, at: 0),
-											brokenRunLengths: brokenRunLengths,
-											brokenRunHasStarted: brokenRunHasStarted)
-				// Case 2: Place a working gear
-				let runWithWorking = currentRun.swapping(.working, at: 0)
-				result += countArrangements(cache: &cache,
-											buckets: buckets.swapping(runWithWorking, at: 0),
-											brokenRunLengths: brokenRunLengths, 
-											brokenRunHasStarted: brokenRunHasStarted)
-			}
-
-
-			//			var result: Int = 0
-			//
-			//			let run = buckets.first!
-			//			let desiredRunLength = brokenRunLengths.first!
-			//			let currentRunLength = run.count
-			//
-			//			if desiredRunLength > currentRunLength && run.contains(.broken) {
-			//				// We need to split this sub-run, so skip executing
-			//				return 0
-			//			}
-			//			// Iterate through the cluster splitting it into subclusters if needed
-			//			for i in 0..<run.count {
-			//				let leftChunk = run[0...i]
-			//				// Check if we already have a broken gear
-			//				if leftChunk.contains(.broken) {
-			//					// advance until all the broken gears are on the left
-			//					continue
-			//				}
-			//				let rightChunk: [SpringStatus]
-			//				if i + desiredRunLength <= currentRunLength {
-			//					rightChunk = Array(run[(i + desiredRunLength)...])
-			//				} else {
-			//					rightChunk = []
-			//				}
-			//
-			//				if let rightFirst = rightChunk.first, rightFirst == .broken {
-			//					// advance until all the broken gears are on the left
-			//					continue
-			//				}
-			//				if rightChunk.count > 1 {
-			//					// If we have at least 2 things, then we recurse
-			//					var newBuckets = Array(buckets[1...])
-			//					newBuckets.insert(Array(rightChunk[1...]), at: 0)
-			//					let newRunLengths = Array(brokenRunLengths[1...])
-			//					result += countArrangements(cache: &cache, buckets: newBuckets, brokenRunLengths: newRunLengths)
-			//				}
-			//			}
-			//			if !run.contains(.broken) {
-			//				// Recurse to count remaining runs
-			//				let newRunLengths = Array(brokenRunLengths[1...])
-			//				result += countArrangements(cache: &cache, buckets: Array(buckets[1...]), brokenRunLengths: newRunLengths)
-			//			}
-
-
-			//			let currentSubrunExpectedLength = brokenRunLengths.first!
-			//
-			//			let searchNum = brokenRunLengths.first!
-			//			if hasNBrokenOrUnknownFollowedByWorkingOrUnknown(state: s, n: searchNum) {
-			//				if brokenRunLengths.count == 1 {
-			//					// Perfect match for the search num, so we're done here
-			//					result += 1
-			//				} else {
-			//					let hasEnoughFuturePotentialUnknowns = s.count > currentSubrunExpectedLength + 1
-			//					if hasEnoughFuturePotentialUnknowns {
-			//						// Next sub-run!
-			//						result += countArrangements(cache: &cache,
-			//													state: Array(s[currentSubrunExpectedLength...]),
-			//													brokenRunLengths: Array(brokenRunLengths[1...]))
-			//					}
-			//				}
-			//			}
-			//			let minimumBrokenSprings = brokenRunLengths.reduce(0, +)
-			//			let nextSpringIsUnknown = s.first! == .unknown
-			//			let springRunNeedsFurtherUnknownProcessing = s.count > minimumBrokenSprings - 1
-			//			if springRunNeedsFurtherUnknownProcessing && nextSpringIsUnknown {
-			//				// Recurse to capture the subtree
-			//				result += countArrangements(cache: &cache, state: Array(s[1...]), brokenRunLengths: brokenRunLengths)
-			//			}
+			result += countArrangements(
+				cache: &cache,
+				cacheKey: workingSuggestion)
 
 			cache[cacheKey] = result
-			print("Result \(result) for \(cacheKey)")
+			info("Result \(result) for \(cacheKey)")
 			return result
 		}
 		static func hasNBrokenOrUnknownFollowedByWorkingOrUnknown(state: [SpringStatus], n: Int) -> Bool {
@@ -418,26 +229,242 @@ struct Day12Part1: AdventDayPart, TestData {
 			case unknown = "?"
 			case working = "."
 			case broken = "#"
-			init?(_ str: String){
+			init?(_ str: String) {
 				self.init(rawValue: str.first!)
 			}
 			var debugDescription: String {
 				return "\(rawValue)"
 			}
 		}
-		struct BucketAssignmentCacheKey: Hashable, CustomDebugStringConvertible {
-			let buckets: [[SpringStatus]]
+		struct AssignmentCacheKey: Hashable, CustomDebugStringConvertible {
+			let assignments: [SpringStatus]
 			let brokenRunLengths: [Int]
-			let brokenRunStarted: Bool
+
+			func bucketizedAssignments() -> [[SpringStatus]] {
+				var canStart = false
+				let trimmed = assignments.trimming(while: { $0 == .working })
+				let tmp: [[SpringStatus]] =
+					trimmed.reduce(
+						into: [[]],
+						{ stateGroups, entry in
+							switch entry {
+							case .unknown, .broken:
+								stateGroups[stateGroups.count - 1].append(entry)
+								canStart = true
+							case .working:
+								if canStart {
+									stateGroups.append([])
+									canStart = false
+								}
+							}
+						}
+					)
+					.filter({ $0.count > 0 })
+				return tmp
+			}
+			func simplified() -> AssignmentCacheKey {
+				var tmp = bucketizedAssignments()
+				var tmpRunLengths = brokenRunLengths
+				while let firstBucket = tmp.first, let expectedBucketLength = tmpRunLengths.first,
+					expectedBucketLength > 0
+				{
+					let bucketSubset: [SpringStatus].SubSequence
+					if expectedBucketLength < firstBucket.count {
+						bucketSubset = firstBucket[0 ..< expectedBucketLength]
+					} else {
+						bucketSubset = firstBucket[0...]
+					}
+					let subsetConsumesBucket = firstBucket.count == bucketSubset.count
+					if subsetConsumesBucket && firstBucket.allDefined
+						&& expectedBucketLength > firstBucket.count
+					{
+						// Bucket has no unknowns, but we needed more entries in the bucket
+						return Self.invalidKey
+					}
+					if !bucketSubset.isEmpty
+						&& bucketSubset.allSatisfy({ $0 == .broken })
+						&& expectedBucketLength == bucketSubset.count
+						&& (subsetConsumesBucket || firstBucket[bucketSubset.count] != .broken)
+					{
+
+						if bucketSubset.count == firstBucket.count {
+							tmp = Array(tmp.dropFirst())
+						} else {
+							let dropCount: Int
+							if bucketSubset.count + 1 < firstBucket.count {
+								// Drop the next assignment too, because it *must* be a '.working' to be valid,
+								// so even if it's currently unknown, we can skip checking invalid paths!
+								dropCount = expectedBucketLength + 1
+							} else {
+								dropCount = expectedBucketLength
+							}
+							let newFirstBucket = Array(firstBucket.dropFirst(dropCount))
+							tmp = tmp.swapping(newFirstBucket, at: 0)
+						}
+						tmpRunLengths = Array(tmpRunLengths.dropFirst())
+					} else {
+						break
+					}
+				}
+				return Self(
+					assignments: Array(
+						tmp.joined(by: .working).trimming(while: { $0 == .working })),
+					brokenRunLengths: tmpRunLengths)
+			}
+
+			/// Replace a .unknown at a specified index with either .working or .broken
+			func injecting(_ assignment: SpringStatus, at index: [SpringStatus].Index) -> AssignmentCacheKey
+			{
+				guard assignment != .unknown else {
+					fatalError("Misuse: Can't be injecting .unknown")
+				}
+				guard assignments.indices.contains(index) else {
+					fatalError("Out-of-bounds assignment index")
+				}
+				let buckets = bucketizedAssignments()
+				guard let firstBucket = buckets.first, !firstBucket.isEmpty else {
+					fatalError("Can't inject assigment into empty/absent bucket")
+				}
+				guard index < firstBucket.count else {
+					// fatalError("When injecting to replace an unknown, the index is expected to be in the first bucket. (Did you forget to simplify the cache key?)")
+					print("Invalid: \(self)")
+					return Self.invalidKey
+				}
+
+				let newAssignments: [SpringStatus]
+				if assignment == .broken {
+					// If we're placing something in a bucket, check if this would consume the run length
+					// If it does, then we need to ensure there's a .working after it!
+					let firstBrokenRunLength = brokenRunLengths.first ?? 0
+
+					let hypotheticalNewBucket = firstBucket.swapping(assignment, at: index)
+					let wouldConsumeBrokenRun =
+						hypotheticalNewBucket.countPrefix(of: .broken) >= firstBrokenRunLength
+					if wouldConsumeBrokenRun {
+						let isWithinCandidateRun = index < firstBucket.count - 1
+						if isWithinCandidateRun {
+							let nextIndex = index + 1
+							let nextIsUnknown =
+								nextIndex < firstBucket.count
+								&& firstBucket[nextIndex] == .unknown
+							let nextIsBroken =
+								nextIndex < firstBucket.count
+								&& firstBucket[nextIndex] == .broken
+
+							if nextIsUnknown {
+								// Inject 2 entries because we need a .working to follow a .broken when we would drop the broken-run-length
+								newAssignments = assignments.replacingSubrange(
+									index ..< (nextIndex + 1),
+									with: [.broken, .working])
+							} else {
+								// Next is not .unknown, and it's probably not .working
+								// So this is either an invalid assignment, or a sequence of brokens
+								let postRunIndex = firstBrokenRunLength
+								let postRunNextIsBroken =
+									postRunIndex < firstBucket.count
+									&& firstBucket[postRunIndex] == .broken
+								if nextIsBroken && postRunNextIsBroken {
+									return Self.invalidKey
+								} else {
+									newAssignments = assignments.swapping(
+										.broken, at: index)
+								}
+							}
+						} else {
+							// Inserting last (this is great, we needed a .working to follow!)
+							newAssignments = assignments.swapping(.broken, at: index)
+						}
+					} else {
+						// More brokens are necessary for this run
+						newAssignments = assignments.swapping(.broken, at: index)
+					}
+
+				} else {
+					// assigment == .working
+					newAssignments = assignments.swapping(.working, at: index)
+				}
+				let result = Self(assignments: newAssignments, brokenRunLengths: brokenRunLengths)
+					.simplified()
+
+				info("\(assignment) => \(self) -> \(result)")
+				return result
+			}
+
+			func hasEnoughPotentialSlots() -> Bool {
+				return brokenRunLengths.reduce(0, +) + brokenRunLengths.count - 1 <= assignments.count
+			}
+
+			func isValid() -> Bool {
+				return isValid(before: assignments.endIndex)
+			}
+
+			func isValid(before endIndex: [SpringStatus].Index) -> Bool {
+				var inBucket = false
+				var bucketSize = 0
+				var bucketIndex = brokenRunLengths.startIndex
+				for i in 0 ..< endIndex {
+					switch assignments[i] {
+					case .unknown:
+						return false
+					case .broken:
+						if !inBucket {
+							inBucket = true
+							guard brokenRunLengths.endIndex != bucketIndex else {
+								// Ran out of buckets to assign this to!
+								return false
+							}
+							bucketSize = brokenRunLengths[bucketIndex]
+						}
+						bucketSize -= 1
+						if bucketSize < 0 {
+							return false
+						}
+					case .working:
+						if inBucket {
+							if bucketSize != 0 {
+								return false
+							}
+							inBucket = false
+							brokenRunLengths.formIndex(after: &bucketIndex)
+						}
+					}
+				}
+				return true
+			}
+
+			/// If you've simplified your cache key, and it's fully valid, then
+			/// 	- there will be empty assignments
+			/// 	- there will be empty brokenRunLengths
+			var isFullyValidated: Bool {
+				return brokenRunLengths.isEmpty && assignments.isEmpty
+			}
 
 			var debugDescription: String {
-				let rStr = String(describing:buckets).padding(toLength: 50, withPad: " ", startingAt: 0)
-				let startedStr: String = switch brokenRunStarted {
-				case true: " [+]"
-				case false: ""
+				let rBase: String
+				if assignments.isEmpty {
+					rBase = "<empty>"
+				} else {
+					rBase = assignments.map({ "\($0.rawValue)" }).joined(separator: "")
 				}
-				return "\(rStr) - \(brokenRunLengths)\(startedStr)"
+				let rStr = rBase.padding(toLength: 15, withPad: " ", startingAt: 0)
+				return "\(rStr) - \(brokenRunLengths.map({"\($0)"}).joined(separator:","))"
+			}
+
+			static var invalidKey: Self {
+				return Self(assignments: [], brokenRunLengths: [1])
 			}
 		}
+		typealias AssignmentCache = [SpringConditionRecord.AssignmentCacheKey: Int]
+		static var emptyCache: [AssignmentCacheKey: Int] {
+			return [:]
+		}
+	}
+}
+extension Array where Element == Day12Part1.SpringConditionRecord.SpringStatus {
+	var allDefined: Bool {
+		return !isEmpty && !contains(.unknown)
+	}
+	func nextUnknownIndex() -> Index? {
+		return firstIndex(of: .unknown)
 	}
 }
