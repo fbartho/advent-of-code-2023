@@ -168,16 +168,16 @@ struct Day11Part1: AdventDayPart {
 			newBounds.size.height += emptyRowIndices.count
 
 			let newStars: [Coord] =
-			stars.map({ star in
-				let numLowerShifts = emptyRowIndices.filter({ $0 < star.y }).count
+				stars.map({ star in
+					let numLowerShifts = emptyRowIndices.filter({ $0 < star.y }).count
 
-				return (x: star.x, y: star.y + numLowerShifts)
-			})
-			.map({ star in
-				let numLowerShifts = emptyColIndices.filter({ $0 < star.x }).count
+					return (x: star.x, y: star.y + numLowerShifts)
+				})
+				.map({ star in
+					let numLowerShifts = emptyColIndices.filter({ $0 < star.x }).count
 
-				return (x: star.x + numLowerShifts, y: star.y)
-			})
+					return (x: star.x + numLowerShifts, y: star.y)
+				})
 
 			return Galaxy(stars: newStars, bounds: newBounds)
 		}
@@ -201,7 +201,6 @@ extension Path2 where Bound == Int {
 		return Int(abs(to.x - from.x) + abs(to.y - from.y))
 	}
 }
-
 
 /*
  --- Part Two ---
@@ -245,7 +244,7 @@ struct Day11Part2: AdventDayPart {
 		let stars: [Coord]
 		let bounds: Frame<Int>
 
-		static var InflationFactor = 1000000 - 1
+		static var InflationFactor = 1_000_000 - 1
 
 		init(stars: [Coord], bounds: Frame<Int>) {
 			self.stars = stars
@@ -293,20 +292,20 @@ struct Day11Part2: AdventDayPart {
 			newBounds.size.height += emptyRowIndices.count
 
 			let newStars: [Coord] =
-			stars.map({ star in
-				let numLowerShifts = emptyRowIndices.filter({ $0 < star.y }).count
+				stars.map({ star in
+					let numLowerShifts = emptyRowIndices.filter({ $0 < star.y }).count
 
-				let spacing = numLowerShifts * Self.InflationFactor
+					let spacing = numLowerShifts * Self.InflationFactor
 
-				return (x: star.x, y: star.y + spacing)
-			})
-			.map({ star in
-				let numLowerShifts = emptyColIndices.filter({ $0 < star.x }).count
+					return (x: star.x, y: star.y + spacing)
+				})
+				.map({ star in
+					let numLowerShifts = emptyColIndices.filter({ $0 < star.x }).count
 
-				let spacing = numLowerShifts * Self.InflationFactor
+					let spacing = numLowerShifts * Self.InflationFactor
 
-				return (x: star.x + spacing, y: star.y)
-			})
+					return (x: star.x + spacing, y: star.y)
+				})
 
 			return Galaxy(stars: newStars, bounds: newBounds)
 		}

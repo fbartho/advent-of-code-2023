@@ -188,42 +188,6 @@ struct Day12Part1: AdventDayPart {
 			info("Result \(result) for \(cacheKey)")
 			return result
 		}
-		static func hasNBrokenOrUnknownFollowedByWorkingOrUnknown(state: [SpringStatus], n: Int) -> Bool {
-			var remaining = n
-			for entry in state {
-				let isWorkingOrUnknown: Bool
-				let isBrokenOrUnknown: Bool
-				switch entry {
-				case .working:
-					isWorkingOrUnknown = true
-					isBrokenOrUnknown = false
-				case .unknown:
-					isWorkingOrUnknown = true
-					isBrokenOrUnknown = true
-				case .broken:
-					isWorkingOrUnknown = false
-					isBrokenOrUnknown = true
-				}
-
-				if remaining == 0 {
-					if isWorkingOrUnknown {
-						return true
-					} else {
-						return false
-					}
-				} else {
-					if isBrokenOrUnknown {
-						remaining -= 1
-						continue
-					} else {
-						// Abort: Found a working gear with 'remaining' broken gears, but were told there would be 'n'
-						return false
-					}
-				}
-			}
-			// We processed all the entries, if the last one subtracted from remaining, then we're good
-			return remaining == 0
-		}
 
 		enum SpringStatus: Character, HasFailableInitFromString, Hashable, CustomDebugStringConvertible {
 			case unknown = "?"
