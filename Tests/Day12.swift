@@ -85,6 +85,11 @@ final class Day12Tests: XCTestCase {
 				.simplified()),
 			String(describing: CacheKey(assignments: [.unknown], brokenRunLengths: [])))
 	}
+	func testSpringConditionRecordParse() {
+		let record = Day12Part1.SpringConditionRecord("# 12,2")
+		let expected = Day12Part1.SpringConditionRecord([.broken],[12,2])
+		XCTAssertEqual(String(describing:record), String(describing:expected))
+	}
 	func testBasic1() {
 		XCTAssertEqual(0, Record("# 0").possibleArrangements)
 		XCTAssertEqual(0, Record("# 2").possibleArrangements)
@@ -140,6 +145,18 @@ final class Day12Tests: XCTestCase {
 		XCTAssertEqual(1, Record(".?? 2").possibleArrangements)
 		XCTAssertEqual(1, Record("#?? 2").possibleArrangements)
 	}
-	func test20() {
+	func testButVerify() {
+		let puzzleLines = Day12Part1.loadData().splitAndTrim(separator: "\n")
+		let verifiedLines = Day12Part1.loadData(testDataSuffix: ".verify").splitAndTrim(separator: "\n").dropLast().map({Int($0)!})
+
+		var newTestCases: [String] = []
+		for (puzzle, solution) in zip(puzzleLines, verifiedLines) {
+			let calculated = Record(puzzle).possibleArrangements
+			XCTAssertEqual(calculated, solution, "\(puzzle) should have been \(solution) but was \(calculated)")
+			if calculated != solution {
+				newTestCases.append("XCTAssertEqual(\(solution), Record(\"\(puzzle)\").possibleArrangements)")
+			}
+		}
+		print(newTestCases.joined(separator: "\n"))
 	}
 }

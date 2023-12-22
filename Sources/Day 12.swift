@@ -105,7 +105,7 @@ struct Day12Part1: AdventDayPart {
 				fatalError("ValidationError: Condition Description invalid \(str)")
 			}
 			initialState = parse(from: bits[0], separator: "")
-			brokenRunLengths = parse(from: bits[1], separator: "")
+			brokenRunLengths = parse(from: bits[1], separator: ",")
 		}
 		init(_ initialState: [SpringStatus], _ brokenRunLengths: [Int]) {
 			self.initialState = initialState
