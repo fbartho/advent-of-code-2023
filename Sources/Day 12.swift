@@ -270,9 +270,15 @@ struct Day12Part1: AdventDayPart {
 						break
 					}
 				}
+				let newAssignments = tmp.joined(by: .working).trimming(while: { $0 == .working })
+				if tmpRunLengths.isEmpty && !newAssignments.contains(.broken) {
+					// We are comprised of a string of .unknown & .working gears
+					// but no expected broken gears remains
+					// So there's only 1 outcome possible
+					return Self.onlyOnePathKey
+				}
 				return Self(
-					assignments: Array(
-						tmp.joined(by: .working).trimming(while: { $0 == .working })),
+					assignments: Array(newAssignments),
 					brokenRunLengths: tmpRunLengths)
 			}
 
@@ -416,6 +422,10 @@ struct Day12Part1: AdventDayPart {
 
 			static var invalidKey: Self {
 				return Self(assignments: [], brokenRunLengths: [1])
+			}
+			/// Any solution that can be shown to have exactly 1 valid assignment
+			static var onlyOnePathKey: Self {
+				return Self(assignments: [], brokenRunLengths: [])
 			}
 		}
 		typealias AssignmentCache = [SpringConditionRecord.AssignmentCacheKey: Int]

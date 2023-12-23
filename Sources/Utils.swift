@@ -95,8 +95,8 @@ extension Array {
 	}
 	func swapping(_ element: Element, at index: Self.Index) -> Self {
 		var result = self
-		if !(index == 0 && isEmpty) {
-			// Allow swapping at first slot if we're empty
+		if (index != endIndex) {
+			// Allow swapping to append an item
 			result.remove(at: index)
 		}
 		result.insert(element, at: index)

@@ -83,8 +83,7 @@ final class Day12Tests: XCTestCase {
 				)
 				.simplified()),
 			String(describing: CacheKey(assignments: [.unknown], brokenRunLengths: [])))
-	}
-	func testAssignmentCacheKey2() {
+
 		XCTAssertEqual(
 			String(
 				describing: CacheKey(
@@ -99,6 +98,41 @@ final class Day12Tests: XCTestCase {
 			String(
 				describing: CacheKey(
 					assignments: [.unknown, .unknown, .unknown], brokenRunLengths: [1])))
+
+			XCTAssertEqual(
+				String(
+					describing: CacheKey(
+						// Strings of ? and . with no broken-run-lengths remaining is trivially exactly 1 outcome: all-gears-working
+						// ?.??.???
+						assignments: [
+							.unknown,
+							.working,
+							.unknown,.unknown,
+							.working,
+							.unknown,.unknown,.unknown,
+							.working,
+							.unknown,.unknown,.unknown,
+						],
+						brokenRunLengths: []
+					)
+					.simplified()),
+				String(
+					describing: CacheKey.onlyOnePathKey))
+
+		XCTAssertEqual(
+			String(
+				describing: CacheKey(
+					// ##.? 2
+					assignments: [
+						.broken, .broken, .working, .unknown,
+					],
+					brokenRunLengths: [2]
+				)
+				.simplified()),
+			String(
+				describing: CacheKey.onlyOnePathKey))
+	}
+	func testAssignmentCacheKey2() {
 	}
 	func testSpringConditionRecordParse() {
 		let record = Day12Part1.SpringConditionRecord("# 12,2")
