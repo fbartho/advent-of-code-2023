@@ -232,6 +232,10 @@ struct Day12Part1: AdventDayPart {
 				while let firstBucket = tmp.first, let expectedBucketLength = tmpRunLengths.first,
 					expectedBucketLength > 0
 				{
+					if firstBucket.isEmpty {
+						tmp = Array(tmp.dropFirst())
+						continue
+					}
 					let bucketSubset: [SpringStatus].SubSequence
 					if expectedBucketLength < firstBucket.count {
 						bucketSubset = firstBucket[0 ..< expectedBucketLength]

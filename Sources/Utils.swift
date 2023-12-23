@@ -95,7 +95,7 @@ extension Array {
 	}
 	func swapping(_ element: Element, at index: Self.Index) -> Self {
 		var result = self
-		if (index != endIndex) {
+		if index != endIndex {
 			// Allow swapping to append an item
 			result.remove(at: index)
 		}
