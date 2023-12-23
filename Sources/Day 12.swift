@@ -446,3 +446,66 @@ extension Array where Element == Day12Part1.SpringConditionRecord.SpringStatus {
 		return firstIndex(of: .unknown)
 	}
 }
+ 
+
+/*
+ --- Part Two ---
+
+ As you look out at the field of springs, you feel like there are way more springs than the condition records list. When you examine the records, you discover that they were actually folded up this whole time!
+
+ To unfold the records, on each row, replace the list of spring conditions with five copies of itself (separated by ?) and replace the list of contiguous groups of damaged springs with five copies of itself (separated by ,).
+
+ So, this row:
+
+ .# 1
+ Would become:
+
+ .#?.#?.#?.#?.# 1,1,1,1,1
+ The first line of the above example would become:
+
+ ???.###????.###????.###????.###????.### 1,1,3,1,1,3,1,1,3,1,1,3,1,1,3
+ In the above example, after unfolding, the number of possible arrangements for some rows is now much larger:
+
+ ???.### 1,1,3 - 1 arrangement
+ .??..??...?##. 1,1,3 - 16384 arrangements
+ ?#?#?#?#?#?#?#? 1,3,1,6 - 1 arrangement
+ ????.#...#... 4,1,1 - 16 arrangements
+ ????.######..#####. 1,6,5 - 2500 arrangements
+ ?###???????? 3,2,1 - 506250 arrangements
+ After unfolding, adding all of the possible arrangement counts together produces 525152.
+
+ Unfold your condition records; what is the new sum of possible arrangement counts?
+ */
+struct Day12Part2: AdventDayPart {
+	var data: String
+
+	static var day: Int = 12
+	static var part: Int = 2
+
+	typealias SpringConditionRecord = Day12Part1.SpringConditionRecord
+	func run() async throws {
+		var cache: [SpringConditionRecord.AssignmentCacheKey: Int] = [:]
+
+		print("--------- Records:")
+		let records: [SpringConditionRecord] = parse(from: data, separator: "\n")
+		info(records.map(String.init(describing:)).joined(separator:"\n"))
+		print("--------- Unfolded Records: ")
+		let unfoldedRecords = records.map(unfoldSpringConditionRecord(_:))
+		info(unfoldedRecords.map(String.init(describing:)).joined(separator:"\n"))
+
+		let arrangements = unfoldedRecords.map({ $0.possibleArrangements(cache: &cache) })
+
+		print("---------")
+		print(arrangements.map(String.init(describing:)).joined(separator: "\n"))
+		print("---------")
+		let sum = arrangements.reduce(0, +)
+		print("Sum: \(sum)")
+	}
+	func unfoldSpringConditionRecord(_ record: SpringConditionRecord) -> SpringConditionRecord {
+		// replace the list of spring conditions with five copies of itself (separated by ?)
+		let newState = Array(Array(repeating: record.initialState, count: 5).joined(by: .unknown))
+		// replace the list of contiguous groups of damaged springs with five copies of itself (separated by ,).
+		let newBroken = Array(Array(repeating: record.brokenRunLengths, count: 5).joined())
+		return SpringConditionRecord(newState, newBroken)
+	}
+}
