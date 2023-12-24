@@ -273,8 +273,61 @@ where Bound: Comparable, Bound: ExpressibleByIntegerLiteral, Bound: FixedWidthIn
 	return (a * b) / gcd
 }
 
-typealias Coord2<Bound> = (x: Bound, y: Bound) where Bound: Comparable, Bound: SignedNumeric
-struct Path2<Bound> where Bound: Comparable, Bound: SignedNumeric {
+typealias Coord2<Bound> = (x: Bound, y: Bound) where Bound: Comparable, Bound: SignedNumeric, Bound: Equatable
+func ==<Bound>(_ a: Coord2<Bound>, _ b: Coord2<Bound>) -> Bool where Bound: Comparable, Bound: SignedNumeric, Bound: Equatable {
+	return a.x == b.x && a.y == b.y
+}
+func ==<Bound>(_ a: (Coord2<Bound>, Coord2<Bound>), _ b: (Coord2<Bound>, Coord2<Bound>)) -> Bool where Bound: Comparable, Bound: SignedNumeric, Bound: Equatable {
+	return a.0 == b.0 && a.1 == b.1
+}
+struct Coord2Box<Bound>: Equatable, CustomDebugStringConvertible where Bound: Comparable, Bound: SignedNumeric, Bound: Equatable {
+	let element: Coord2<Bound>
+	init(_ element: Coord2<Bound>) {
+		self.element = element
+	}
+	init?(_ element: Coord2<Bound>?) {
+		guard let element = element else {return nil}
+		self.element = element
+	}
+	init(_ tuple: (Bound, Bound)) {
+		element = (x: tuple.0, y: tuple.1)
+	}
+	init?(_ tuple: (Bound, Bound)?) {
+		guard let tuple = tuple else {return nil}
+		element = (x: tuple.0, y: tuple.1)
+	}
+	init(_ x: Bound, _ y: Bound) {
+		element = (x: x, y: y)
+	}
+	static func == (lhs: Coord2Box<Bound>, rhs: Coord2Box<Bound>) -> Bool {
+		return lhs.element == rhs.element
+	}
+	var debugDescription: String {
+		return "(\(element.x), \(element.y))"
+	}
+}
+struct DuplexCoord2Box<Bound>: Equatable, CustomDebugStringConvertible where Bound: Comparable, Bound: SignedNumeric, Bound: Equatable {
+	let a: Coord2Box<Bound>
+	let b: Coord2Box<Bound>
+
+	init(_ a: (Bound, Bound), _ b: (Bound, Bound)) {
+		self.a = Coord2Box(a)
+		self.b = Coord2Box(b)
+	}
+	init(_ tuple: (Coord2<Bound>, Coord2<Bound>)) {
+		a = Coord2Box(tuple.0)
+		b = Coord2Box(tuple.1)
+	}
+	init(_ tuple: ((Bound,Bound), (Bound,Bound))) {
+		a = Coord2Box(tuple.0)
+		b = Coord2Box(tuple.1)
+	}
+
+	var debugDescription: String {
+		return "(\(a), \(b))"
+	}
+}
+struct Path2<Bound> where Bound: Comparable, Bound: SignedNumeric, Bound: Equatable {
 	var from: Coord2<Bound>
 	var to: Coord2<Bound>
 
@@ -302,10 +355,16 @@ struct Frame<Bound>: CustomDebugStringConvertible where Bound: Comparable, Bound
 		size = Size()
 	}
 
-	func contains(coord: Coord2<Bound>) -> Bool {
+	func inclusiveContains(coord: Coord2<Bound>) -> Bool {
 		return origin.x <= coord.x
 			&& origin.y <= coord.y
-			&& size.contains(coord: coord)
+			&& size.inclusiveContains(coord: coord)
+
+	}
+	func exclusiveContains(coord: Coord2<Bound>) -> Bool {
+		return origin.x <= coord.x
+			&& origin.y <= coord.y
+			&& size.exclusiveContains(coord: coord)
 
 	}
 	mutating func normalize() {
@@ -334,6 +393,49 @@ struct Frame<Bound>: CustomDebugStringConvertible where Bound: Comparable, Bound
 	var debugDescription: String {
 		return "[o: \(origin), s: \(size)]"
 	}
+	func safeInclusive(x: Bound) -> Bound? {
+		guard xInclusiveRange.contains(x) else {
+			return nil
+		}
+		return x
+	}
+	func safeInclusive(y: Bound) -> Bound? {
+		guard yInclusiveRange.contains(y) else {
+			return nil
+		}
+		return y
+	}
+	func safeInclusive(coord: Coord2<Bound>) -> Coord2<Bound>? {
+		guard xInclusiveRange.contains(coord.x) else {
+			return nil
+		}
+		guard yInclusiveRange.contains(coord.y) else {
+			return nil
+		}
+		return coord
+	}
+	func safeExclusive(x: Bound) -> Bound? {
+		guard xExclusiveRange.contains(x) else {
+			return nil
+		}
+		return x
+	}
+	func safeExclusive(y: Bound) -> Bound? {
+		guard yExclusiveRange.contains(y) else {
+			return nil
+		}
+		return y
+	}
+	func safeExclusive(coord: Coord2<Bound>) -> Coord2<Bound>? {
+		guard xExclusiveRange.contains(coord.x) else {
+			return nil
+		}
+		guard yExclusiveRange.contains(coord.y) else {
+			return nil
+		}
+		return coord
+	}
+
 
 	struct Origin: CustomDebugStringConvertible {
 		var x: Bound
@@ -347,6 +449,10 @@ struct Frame<Bound>: CustomDebugStringConvertible where Bound: Comparable, Bound
 		var debugDescription: String {
 			return "(\(x), \(y))"
 		}
+
+		var coord: Coord2<Bound> {
+			return (x: x, y: y)
+		}
 	}
 	struct Size: CustomDebugStringConvertible {
 		var width: Bound
@@ -357,12 +463,18 @@ struct Frame<Bound>: CustomDebugStringConvertible where Bound: Comparable, Bound
 			self.height = height
 		}
 
-		fileprivate func contains(coord: Coord2<Bound>) -> Bool {
+		fileprivate func inclusiveContains(coord: Coord2<Bound>) -> Bool {
 			return width >= coord.x && height >= coord.y
+		}
+		fileprivate func exclusiveContains(coord: Coord2<Bound>) -> Bool {
+			return width > coord.x && height > coord.y
 		}
 
 		var debugDescription: String {
 			return "(\(width), \(height))"
+		}
+		var coord: Coord2<Bound> {
+			return (x: width, y: height)
 		}
 	}
 }
