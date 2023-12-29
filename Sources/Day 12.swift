@@ -446,7 +446,6 @@ extension Array where Element == Day12Part1.SpringConditionRecord.SpringStatus {
 		return firstIndex(of: .unknown)
 	}
 }
- 
 
 /*
  --- Part Two ---
@@ -488,10 +487,10 @@ struct Day12Part2: AdventDayPart {
 
 		print("--------- Records:")
 		let records: [SpringConditionRecord] = parse(from: data, separator: "\n")
-		info(records.map(String.init(describing:)).joined(separator:"\n"))
+		info(records.map(String.init(describing:)).joined(separator: "\n"))
 		print("--------- Unfolded Records: ")
 		let unfoldedRecords = records.map(unfoldSpringConditionRecord(_:))
-		info(unfoldedRecords.map(String.init(describing:)).joined(separator:"\n"))
+		info(unfoldedRecords.map(String.init(describing:)).joined(separator: "\n"))
 
 		let arrangements = unfoldedRecords.map({ $0.possibleArrangements(cache: &cache) })
 

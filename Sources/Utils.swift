@@ -7,7 +7,7 @@
 
 import Foundation
 
-let ENABLE_INFO_LOG = false
+let ENABLE_INFO_LOG = true
 func info(_ items: @autoclosure () -> Any, separator: String = " ", terminator: String = "\n") {
 	guard ENABLE_INFO_LOG else { return }
 	print(items(), separator: separator, terminator: terminator)
@@ -274,26 +274,29 @@ where Bound: Comparable, Bound: ExpressibleByIntegerLiteral, Bound: FixedWidthIn
 }
 
 typealias Coord2<Bound> = (x: Bound, y: Bound) where Bound: Comparable, Bound: SignedNumeric, Bound: Equatable
-func ==<Bound>(_ a: Coord2<Bound>, _ b: Coord2<Bound>) -> Bool where Bound: Comparable, Bound: SignedNumeric, Bound: Equatable {
+func == <Bound>(_ a: Coord2<Bound>, _ b: Coord2<Bound>) -> Bool
+where Bound: Comparable, Bound: SignedNumeric, Bound: Equatable {
 	return a.x == b.x && a.y == b.y
 }
-func ==<Bound>(_ a: (Coord2<Bound>, Coord2<Bound>), _ b: (Coord2<Bound>, Coord2<Bound>)) -> Bool where Bound: Comparable, Bound: SignedNumeric, Bound: Equatable {
+func == <Bound>(_ a: (Coord2<Bound>, Coord2<Bound>), _ b: (Coord2<Bound>, Coord2<Bound>)) -> Bool
+where Bound: Comparable, Bound: SignedNumeric, Bound: Equatable {
 	return a.0 == b.0 && a.1 == b.1
 }
-struct Coord2Box<Bound>: Equatable, CustomDebugStringConvertible where Bound: Comparable, Bound: SignedNumeric, Bound: Equatable {
+struct Coord2Box<Bound>: Equatable, CustomDebugStringConvertible
+where Bound: Comparable, Bound: SignedNumeric, Bound: Equatable {
 	let element: Coord2<Bound>
 	init(_ element: Coord2<Bound>) {
 		self.element = element
 	}
 	init?(_ element: Coord2<Bound>?) {
-		guard let element = element else {return nil}
+		guard let element = element else { return nil }
 		self.element = element
 	}
 	init(_ tuple: (Bound, Bound)) {
 		element = (x: tuple.0, y: tuple.1)
 	}
 	init?(_ tuple: (Bound, Bound)?) {
-		guard let tuple = tuple else {return nil}
+		guard let tuple = tuple else { return nil }
 		element = (x: tuple.0, y: tuple.1)
 	}
 	init(_ x: Bound, _ y: Bound) {
@@ -306,7 +309,8 @@ struct Coord2Box<Bound>: Equatable, CustomDebugStringConvertible where Bound: Co
 		return "(\(element.x), \(element.y))"
 	}
 }
-struct DuplexCoord2Box<Bound>: Equatable, CustomDebugStringConvertible where Bound: Comparable, Bound: SignedNumeric, Bound: Equatable {
+struct DuplexCoord2Box<Bound>: Equatable, CustomDebugStringConvertible
+where Bound: Comparable, Bound: SignedNumeric, Bound: Equatable {
 	let a: Coord2Box<Bound>
 	let b: Coord2Box<Bound>
 
@@ -318,7 +322,7 @@ struct DuplexCoord2Box<Bound>: Equatable, CustomDebugStringConvertible where Bou
 		a = Coord2Box(tuple.0)
 		b = Coord2Box(tuple.1)
 	}
-	init(_ tuple: ((Bound,Bound), (Bound,Bound))) {
+	init(_ tuple: ((Bound, Bound), (Bound, Bound))) {
 		a = Coord2Box(tuple.0)
 		b = Coord2Box(tuple.1)
 	}
@@ -342,7 +346,8 @@ struct Path2<Bound> where Bound: Comparable, Bound: SignedNumeric, Bound: Equata
 	}
 }
 
-struct Frame<Bound>: CustomDebugStringConvertible where Bound: Comparable, Bound: SignedNumeric {
+struct Frame<Bound>: CustomDebugStringConvertible, Hashable, Equatable
+where Bound: Comparable, Bound: SignedNumeric, Bound: Hashable, Bound: Equatable {
 	var origin: Origin
 	var size: Size
 
@@ -436,8 +441,7 @@ struct Frame<Bound>: CustomDebugStringConvertible where Bound: Comparable, Bound
 		return coord
 	}
 
-
-	struct Origin: CustomDebugStringConvertible {
+	struct Origin: CustomDebugStringConvertible, Hashable, Equatable {
 		var x: Bound
 		var y: Bound
 
@@ -454,7 +458,7 @@ struct Frame<Bound>: CustomDebugStringConvertible where Bound: Comparable, Bound
 			return (x: x, y: y)
 		}
 	}
-	struct Size: CustomDebugStringConvertible {
+	struct Size: CustomDebugStringConvertible, Hashable, Equatable {
 		var width: Bound
 		var height: Bound
 
