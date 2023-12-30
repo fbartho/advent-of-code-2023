@@ -95,9 +95,19 @@ extension Array {
 	mutating func prepend(_ element: Element) {
 		self.insert(element, at: 0)
 	}
+	mutating func popFront() -> Element? {
+		let result = first
+		self = Array(dropFirst())
+		return result
+	}
 	func prepending(_ element: Element) -> Self {
 		var result = self
 		result.insert(element, at: 0)
+		return result
+	}
+	func appending(_ element: Element) -> Self {
+		var result = self
+		result.append(element)
 		return result
 	}
 	func swapping(_ element: Element, at index: Self.Index) -> Self {
@@ -530,9 +540,8 @@ struct Grid<Element>: CustomDebugStringConvertible {
 		}
 	}
 	func shift(_ coord: Coord2<Int>, toThe direction: Direction, by distance: Int = 1) -> Coord2<Int>? {
-		guard frame.exclusiveContains(coord: coord) else {
-			return nil
-		}
+		// Coord can be just outside the map, so don't validate it!
+		
 		var result: Coord2<Int> = coord
 		switch direction {
 		case .north:

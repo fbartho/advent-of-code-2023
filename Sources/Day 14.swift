@@ -89,7 +89,7 @@ struct Day14Part1: AdventDayPart {
 			return "\(grid)"
 		}
 		func printSelf() {
-			print(self)
+			info(self)
 		}
 
 		/// The amount of load caused by a single rounded rock (O) is equal to the number of rows
@@ -141,11 +141,8 @@ struct Day14Part1: AdventDayPart {
 			case empty = "."
 			case cubeRock = "#"
 			case rollingRock = "O"
-			//init?(_ str: String) {
-			//	self.init(rawValue: str)
-			//}
-			init(_ str: String) {
-				self.init(rawValue: str)!
+			init?(_ str: String) {
+				self.init(rawValue: str)
 			}
 			var debugDescription: String {
 				return self.rawValue
