@@ -72,7 +72,7 @@ struct Day14Part1: AdventDayPart {
 
 		print("Total Load: \(tilted.totalLoad)")
 	}
-	struct PlatformMap: HasInitFromString, CustomDebugStringConvertible {
+	struct PlatformMap: HasInitFromString, CustomDebugStringConvertible, Hashable, Equatable {
 		var grid: Grid<TileType>
 
 		init(grid: Grid<TileType>) {
@@ -87,6 +87,9 @@ struct Day14Part1: AdventDayPart {
 		}
 		var debugDescription: String {
 			return "\(grid)"
+		}
+		func printSelf() {
+			print(self)
 		}
 
 		/// The amount of load caused by a single rounded rock (O) is equal to the number of rows
@@ -103,23 +106,33 @@ struct Day14Part1: AdventDayPart {
 		}
 
 		func tiltingUntilSettled(toThe direction: Grid<TileType>.Direction) -> PlatformMap {
+			// info("Tilting: \(direction)")
 			var rollables = grid.allCoords().filter({ grid[$0] == .rollingRock })
 			var nextGrid = grid
 			while rollables.count > 0 {
+				var stuckCount = 0
 				rollables = rollables.compactMap({ coord in
-					guard let nextCoord = grid.shift(coord, toThe: .north) else {
+					guard let nextCoord = grid.shift(coord, toThe: direction) else {
 						return nil
 					}
-					if nextGrid[nextCoord] == .empty {
+					switch nextGrid[nextCoord] {
+					case .rollingRock:
+						// If there's already a rolling rock, then wait for it to move
+						stuckCount += 1
+						return coord
+					case .empty:
 						nextGrid[nextCoord] = .rollingRock
 						nextGrid[coord] = .empty
 						return nextCoord
-					} else {
-						// Next step is either a rolling-rock, or a fixed-rock
+					case .cubeRock:
 						// So no further mutations are necessary
 						return nil
 					}
 				})
+				if !rollables.isEmpty && rollables.count == stuckCount {
+					// Abort if everything is stuck!
+					break
+				}
 			}
 			return Self(grid: nextGrid)
 		}
@@ -128,9 +141,9 @@ struct Day14Part1: AdventDayPart {
 			case empty = "."
 			case cubeRock = "#"
 			case rollingRock = "O"
-			//			init?(_ str: String) {
-			//				self.init(rawValue: str)
-			//			}
+			//init?(_ str: String) {
+			//	self.init(rawValue: str)
+			//}
 			init(_ str: String) {
 				self.init(rawValue: str)!
 			}
@@ -138,5 +151,116 @@ struct Day14Part1: AdventDayPart {
 				return self.rawValue
 			}
 		}
+	}
+}
+
+/*
+ --- Part Two ---
+
+ The parabolic reflector dish deforms, but not in a way that focuses the beam. To do that, you'll need to move the rocks to the edges of the platform. Fortunately, a button on the side of the control panel labeled "spin cycle" attempts to do just that!
+
+ Each cycle tilts the platform four times so that the rounded rocks roll north, then west, then south, then east. After each tilt, the rounded rocks roll as far as they can before the platform tilts in the next direction. After one cycle, the platform will have finished rolling the rounded rocks in those four directions in that order.
+
+ Here's what happens in the example above after each of the first few cycles:
+
+ After 1 cycle:
+ .....#....
+ ....#...O#
+ ...OO##...
+ .OO#......
+ .....OOO#.
+ .O#...O#.#
+ ....O#....
+ ......OOOO
+ #...O###..
+ #..OO#....
+
+ After 2 cycles:
+ .....#....
+ ....#...O#
+ .....##...
+ ..O#......
+ .....OOO#.
+ .O#...O#.#
+ ....O#...O
+ .......OOO
+ #..OO###..
+ #.OOO#...O
+
+ After 3 cycles:
+ .....#....
+ ....#...O#
+ .....##...
+ ..O#......
+ .....OOO#.
+ .O#...O#.#
+ ....O#...O
+ .......OOO
+ #...O###.O
+ #.OOO#...O
+ This process should work if you leave it running long enough, but you're still worried about the north support beams. To make sure they'll survive for a while, you need to calculate the total load on the north support beams after 1000000000 cycles.
+
+ In the above example, after 1000000000 cycles, the total load on the north support beams is 64.
+
+ Run the spin cycle for 1000000000 cycles. Afterward, what is the total load on the north support beams?
+ */
+struct Day14Part2: AdventDayPart {
+	var data: String
+
+	static var day: Int = 14
+	static var part: Int = 2
+
+	typealias PlatformMap = Day14Part1.PlatformMap
+
+	static var ShakeLimit = 1_000_000_000
+
+	func run() async throws {
+		let platform = PlatformMap(data)
+		guard platform.grid.rows.count >= 1 else {
+			fatalError("Not enough data \(data)")
+		}
+		print(platform)
+		print("---------------")
+		var count = 0
+		var seen: Set<PlatformMap> = Set()
+		var current = platform
+		var results: [PlatformMap] = []
+		var last = current
+		while count < Self.ShakeLimit {
+			if seen.contains(current) {
+				print(
+					"Duplicate State on loop index \(count), early exit! \((count/1_000_000_000) * 100)%"
+				)
+				break
+			}
+			seen.insert(current)
+			results.append(current)
+			current = spinCycle(platform: current)
+			count += 1
+			// print(count, current.totalLoad, current)
+			if last == current {
+				print("Aborting early at \(count) \((Double(count)/1_000_000_000) * 100)%")
+				break
+			}
+			last = current
+		}
+		print("---------------")
+		if let prefixLength = results.firstIndex(of: current) {
+			let loopLength = results.count - prefixLength
+			let offset = (Self.ShakeLimit - prefixLength) % loopLength
+			let finalStateIndex = prefixLength + offset
+			current = results[finalStateIndex]
+		}
+		print("---------------")
+
+		print("Total Load: \(current.totalLoad)")
+	}
+	func spinCycle(platform: PlatformMap) -> PlatformMap {
+		var result = platform
+		result = result.tiltingUntilSettled(toThe: .north)
+		result = result.tiltingUntilSettled(toThe: .west)
+		result = result.tiltingUntilSettled(toThe: .south)
+		result = result.tiltingUntilSettled(toThe: .east)
+		return result
 	}
 }

@@ -537,7 +537,7 @@ struct Grid<Element>: CustomDebugStringConvertible {
 		case .east:
 			result.x += distance
 		case .west:
-			result.y -= distance
+			result.x -= distance
 		}
 		guard frame.exclusiveContains(coord: result) else {
 			return nil
