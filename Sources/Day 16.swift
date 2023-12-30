@@ -84,7 +84,7 @@ struct Day16Part1: AdventDayPart {
 
 		static func energizedTileCount(visitMap: Grid<VisitTile>) -> Int {
 			let allTiles: [VisitTile] = Array(visitMap.rows.joined())
-			let energizedTiles = allTiles.filter({tile in
+			let energizedTiles = allTiles.filter({ tile in
 				return VisitTile.unvisited != tile
 			})
 			return energizedTiles.count
@@ -93,11 +93,14 @@ struct Day16Part1: AdventDayPart {
 		typealias Direction = Grid<VisitTile>.Direction
 		typealias BeamHead = (traveling: Direction, head: Coord2<Int>)
 
-		mutating func energizeTheBeam(_ startingBeamHead: BeamHead = (traveling: .east, head: (x: -1, y: 0))) -> Grid<VisitTile> {
+		mutating func energizeTheBeam(_ startingBeamHead: BeamHead = (traveling: .east, head: (x: -1, y: 0)))
+			-> Grid<VisitTile>
+		{
 			// Clone it with a blank map
-			var visitMap: Grid<VisitTile> = Grid(rows: grid.rows.map({row in
-				return row.map({_ in .unvisited})
-			}))
+			var visitMap: Grid<VisitTile> = Grid(
+				rows: grid.rows.map({ row in
+					return row.map({ _ in .unvisited })
+				}))
 
 			var beamHeads: [BeamHead] = [startingBeamHead]
 			while let beam = beamHeads.popFront() {
@@ -127,44 +130,50 @@ struct Day16Part1: AdventDayPart {
 						beamHeads.append((traveling: newDirection, head: nextLoc))
 
 					case .forwardSlash:
-						newDirection = switch beam.traveling {
-						case .north: .east
-						case .south: .west
-						case .east: .north
-						case .west: .south
-						}
+						newDirection =
+							switch beam.traveling {
+							case .north: .east
+							case .south: .west
+							case .east: .north
+							case .west: .south
+							}
 						beamHeads.append((traveling: newDirection, head: nextLoc))
 
 					case .backSlash:
-						newDirection = switch beam.traveling {
-						case .north: .west
-						case .south: .east
-						case .east: .south
-						case .west: .north
-						}
+						newDirection =
+							switch beam.traveling {
+							case .north: .west
+							case .south: .east
+							case .east: .south
+							case .west: .north
+							}
 						beamHeads.append((traveling: newDirection, head: nextLoc))
 
 					case .horiz:
 						// Need to split two directions if you hit a splitter side-on
-						let newDirections: [Direction] = switch beam.traveling {
-						case .north, .south: [.east, .west]
-						case .east: [.east]
-						case .west: [.west]
-						}
-						beamHeads.append(contentsOf: newDirections.map({dir in
-							return (traveling: dir, head: nextLoc)
-						}))
+						let newDirections: [Direction] =
+							switch beam.traveling {
+							case .north, .south: [.east, .west]
+							case .east: [.east]
+							case .west: [.west]
+							}
+						beamHeads.append(
+							contentsOf: newDirections.map({ dir in
+								return (traveling: dir, head: nextLoc)
+							}))
 
 					case .vert:
 						// Need to split two directions if you hit a splitter side-on
-						let newDirections: [Direction] = switch beam.traveling {
-						case .north: [.north]
-						case .south: [.south]
-						case .east, .west: [.north, .south]
-						}
-						beamHeads.append(contentsOf: newDirections.map({dir in
-							return (traveling: dir, head: nextLoc)
-						}))
+						let newDirections: [Direction] =
+							switch beam.traveling {
+							case .north: [.north]
+							case .south: [.south]
+							case .east, .west: [.north, .south]
+							}
+						beamHeads.append(
+							contentsOf: newDirections.map({ dir in
+								return (traveling: dir, head: nextLoc)
+							}))
 					}
 				}
 			}
@@ -208,3 +217,70 @@ struct Day16Part1: AdventDayPart {
 	}
 }
 
+/*
+ --- Part Two ---
+
+ As you try to work out what might be wrong, the reindeer tugs on your shirt and leads you to a nearby control panel. There, a collection of buttons lets you align the contraption so that the beam enters from any edge tile and heading away from that edge. (You can choose either of two directions for the beam if it starts on a corner; for instance, if the beam starts in the bottom-right corner, it can start heading either left or upward.)
+
+ So, the beam could start on any tile in the top row (heading downward), any tile in the bottom row (heading upward), any tile in the leftmost column (heading right), or any tile in the rightmost column (heading left). To produce lava, you need to find the configuration that energizes as many tiles as possible.
+
+ In the above example, this can be achieved by starting the beam in the fourth tile from the left in the top row:
+
+ .|<2<\....
+ |v-v\^....
+ .v.v.|->>>
+ .v.v.v^.|.
+ .v.v.v^...
+ .v.v.v^..\
+ .v.v/2\\..
+ <-2-/vv|..
+ .|<<<2-|.\
+ .v//.|.v..
+ Using this configuration, 51 tiles are energized:
+
+ .#####....
+ .#.#.#....
+ .#.#.#####
+ .#.#.##...
+ .#.#.##...
+ .#.#.##...
+ .#.#####..
+ ########..
+ .#######..
+ .#...#.#..
+ Find the initial beam configuration that energizes the largest number of tiles; how many tiles are energized in that configuration?
+ */
+struct Day16Part2: AdventDayPart {
+	var data: String
+
+	static var day: Int = 16
+	static var part: Int = 2
+
+	typealias LaserMap = Day16Part1.LaserMap
+	func run() async throws {
+		var chart = LaserMap(data)
+		print(chart)
+		print("--------")
+		var potentialBeams: [LaserMap.BeamHead] = []
+		let rowCount = chart.grid.rowCount
+		let colCount = chart.grid.colCount
+
+		for i in 0 ..< rowCount {
+			potentialBeams.append((traveling: .east, head: (x: -1, y: i)))
+			potentialBeams.append((traveling: .west, head: (x: colCount, y: i)))
+		}
+		for i in 0 ..< colCount {
+			potentialBeams.append((traveling: .south, head: (x: i, y: -1)))
+			potentialBeams.append((traveling: .north, head: (x: i, y: rowCount)))
+		}
+		print("PotentialBeams: \(potentialBeams)")
+		print("--------")
+		let beamEnergies = potentialBeams.map({ beamHead in
+			return LaserMap.energizedTileCount(visitMap: chart.energizeTheBeam(beamHead))
+		})
+		print("Energies: \(beamEnergies)")
+		print("--------")
+		let maxEnergy = beamEnergies.max()!
+		print("Energized Tile Count \(maxEnergy)")
+	}
+}

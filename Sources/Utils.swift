@@ -541,7 +541,7 @@ struct Grid<Element>: CustomDebugStringConvertible {
 	}
 	func shift(_ coord: Coord2<Int>, toThe direction: Direction, by distance: Int = 1) -> Coord2<Int>? {
 		// Coord can be just outside the map, so don't validate it!
-		
+
 		var result: Coord2<Int> = coord
 		switch direction {
 		case .north:

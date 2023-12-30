@@ -286,7 +286,7 @@ struct Day15Part2: AdventDayPart {
 
 		init(_ str: String) {
 			self.str = str
-			var bits = str.components(separatedBy: Command.symbols)
+			let bits = str.components(separatedBy: Command.symbols)
 			guard bits.count == 2 else {
 				fatalError("LenseOp Validation Error: need values separated by a command")
 			}
