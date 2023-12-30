@@ -509,6 +509,7 @@ struct Day13Part2: AdventDayPart {
 			// 1,1 -> C-1-1,0
 			return (x: colCount - 1 - coord.y, y: coord.x)
 		}
+		/// Diagonally mirroring along the 0,0 -> N,N diagonal
 		static func mirror(_ grid: [[TileType]]) -> [[TileType]] {
 			let newColCount = grid.count
 			let result: [[TileType]] = allCoords(for: grid)

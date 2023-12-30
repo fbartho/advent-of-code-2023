@@ -13,6 +13,7 @@ func info(_ items: @autoclosure () -> Any, separator: String = " ", terminator: 
 	print(items(), separator: separator, terminator: terminator)
 }
 
+// MARK: - Parsing
 protocol HasInitFromString {
 	init(_ str: String)
 }
@@ -84,6 +85,7 @@ extension String {
 		return String(repeating: self, count: count)
 	}
 }
+// MARK: Arrays & Collections
 extension Array {
 	mutating func prepend(_ element: Element) {
 		self.insert(element, at: 0)
@@ -133,7 +135,7 @@ extension Array where Element: Equatable {
 		return count
 	}
 }
-
+// MARK: - Misc
 struct ProgressLogger {
 	let prefix: String
 	/// Powers of 2 might grow too fast for satisfying feedback
@@ -253,7 +255,7 @@ public struct PairingsIterator<Base: Collection>: Sequence, IteratorProtocol {
 		return (from, to)
 	}
 }
-
+// MARK: - Math
 func leastCommonMultiple<Bound>(numbers nums: [Bound]) -> Bound
 where Bound: Comparable, Bound: ExpressibleByIntegerLiteral, Bound: FixedWidthInteger {
 	return nums.reduce(1, { accum, b in leastCommonMultiple(a: accum, b: b) })
@@ -482,3 +484,172 @@ where Bound: Comparable, Bound: SignedNumeric, Bound: Hashable, Bound: Equatable
 		}
 	}
 }
+// MARK: - Grids
+struct Grid<Element>: CustomDebugStringConvertible {
+	enum Direction: String {
+		case north, south, east, west
+	}
+	var frame: Frame<Int>
+	var rows: [[Element]]
+	init(frame: Frame<Int>, rows: [[Element]]) {
+		self.frame = frame
+		self.rows = rows
+	}
+	init(rows: [[Element]]) {
+		let rowCount = rows.count
+		let colCount = (rows.first ?? []).count
+		frame = Frame(width: colCount, height: rowCount)
+		self.rows = rows
+	}
+	func contains(coord: Coord2<Int>) -> Bool {
+		return frame.exclusiveContains(coord: coord)
+	}
+	var rowCount: Int {
+		return frame.size.height
+	}
+	var colCount: Int {
+		return frame.size.width
+	}
+	subscript(coord: Coord2<Int>) -> Element {
+		get {
+			guard contains(coord: coord) else {
+				fatalError("Grid: Out-of-bounds read: \(coord)")
+			}
+			return rows[coord.y][coord.x]
+		}
+		set(newValue) {
+			guard contains(coord: coord) else {
+				fatalError("Grid: Out-of-bounds write: \(coord)")
+			}
+			rows[coord.y][coord.x] = newValue
+		}
+	}
+	func shift(_ coord: Coord2<Int>, toThe direction: Direction, by distance: Int = 1) -> Coord2<Int>? {
+		guard frame.exclusiveContains(coord: coord) else {
+			return nil
+		}
+		var result: Coord2<Int> = coord
+		switch direction {
+		case .north:
+			result.y -= distance
+		case .south:
+			result.y += distance
+		case .east:
+			result.x += distance
+		case .west:
+			result.y -= distance
+		}
+		guard frame.exclusiveContains(coord: result) else {
+			return nil
+		}
+		return result
+	}
+	var debugDescription: String {
+		return "{\(frame)}\n\(Self.describe(grid:rows))"
+	}
+	static func describe(grid: [[Element]]) -> String {
+		return grid.map({ $0.map(String.init(describing:)).joined() }).joined(separator: "\n")
+	}
+	static func printGrid(_ grid: [[Element]]) {
+		print(describe(grid: grid))
+	}
+}
+extension Grid: HasInitFromString where Element: HasInitFromString {
+	init(_ str: String) {
+		let rows = str.splitAndTrim(separator: "\n")
+			.map({ rowStr in
+				let row: [Element] = rowStr.split(separator: "").map(String.init)
+					.map({ elStr in
+						return Element(elStr)
+					})
+				return row
+			})
+		self.init(rows: rows)
+	}
+}
+extension Grid: HasFailableInitFromString where Element: HasFailableInitFromString {
+	init?(_ str: String) {
+		let candidateRows: [[Element?]] = str.splitAndTrim(separator: "\n")
+			.map({ parse(from: $0, separator: "") })
+		var cleanRows: [[Element]] = []
+		for row in candidateRows {
+			let cleanRow = Array(row.compacted())
+			guard row.count == cleanRow.count else {
+				info("Probably unexpected nil in \(row) for:\n\(str)")
+				return nil
+			}
+			cleanRows.append(cleanRow)
+		}
+		self.init(rows: cleanRows)
+	}
+}
+extension Grid: Equatable where Element: Equatable {
+
+}
+extension Grid: Hashable where Element: Hashable {
+
+}
+
+// MARK: - Caching
+protocol CacheBasics where KeyType: Hashable {
+	associatedtype KeyType
+	associatedtype ValueType
+	var cache: [KeyType: ValueType] { get set }
+	subscript(_ key: KeyType) -> ValueType? { get set }
+}
+extension CacheBasics {
+	subscript(_ key: KeyType) -> ValueType? {
+		get {
+			return cache[key]
+		}
+		set(newValue) {
+			cache[key] = newValue
+		}
+	}
+}
+struct Cache<KeyType, ValueType>: CacheBasics where KeyType: Hashable {
+	var cache: [KeyType: ValueType] = [:]
+
+	/// Lazily generates & stores the value if it's not present!
+	mutating func lookup(_ what: KeyType, _ generator: () -> ValueType) -> ValueType {
+		guard let value = self[what] else {
+			let result = generator()
+			self[what] = result
+			return result
+		}
+		return value
+	}
+}
+protocol SelfKeyingCache: CacheBasics {
+	var keyer: (_: ValueType) -> KeyType { get }
+}
+protocol PreloadableCache {
+	associatedtype KeyType
+	associatedtype ValueType
+
+	mutating func insert(key: KeyType, value: ValueType)
+}
+extension PreloadableCache where Self: SelfKeyingCache {
+	mutating func insert(_ what: ValueType) {
+		cache[keyer(what)] = what
+	}
+}
+
+extension Grid {
+	func allCoords() -> [Coord2<Int>] {
+		let height = rows.count
+		let width = (rows.first ?? []).count
+		let cacheKey = "\(width)x\(height)"
+
+		return allCoordsCache.lookup(cacheKey) {
+			var result: [Coord2<Int>] = []
+			for y in frame.origin.y ..< height {
+				for x in frame.origin.x ..< width {
+					result.append((x: x, y: y))
+				}
+			}
+			return result
+		}
+	}
+}
+private var allCoordsCache: Cache<String, [Coord2<Int>]> = Cache()
