@@ -79,6 +79,11 @@ extension StringProtocol {
 		}
 		return String(self.dropFirst(prefix.count)).trimmingCharacters(in: .whitespaces)
 	}
+
+	var isASCII: Bool {
+		return allSatisfy(\.isASCII)
+	}
+	var asciiValues: [UInt8] { compactMap(\.asciiValue) }
 }
 extension String {
 	func repeated(by count: Int) -> String {
